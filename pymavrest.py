@@ -90,7 +90,7 @@ def get_parameter_all():
 def get_parameter_with_name(parameter_name):
     global parameter_data
     if parameter_name in parameter_data.keys():
-        result = parameter_data[parameter_name]
+        result = {parameter_name: parameter_data[parameter_name]}
     else:
         result = {}
     return flask.jsonify(result)

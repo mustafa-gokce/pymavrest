@@ -78,6 +78,10 @@ curl http://127.0.0.1:2609/get/parameter/all
 curl http://127.0.0.1:2609/get/parameter/STAT_RUNTIME
 ```
 
+```json
+{"STAT_RUNTIME":37280.0}
+```
+
 ### Advanced run and query
 
 ```bash
