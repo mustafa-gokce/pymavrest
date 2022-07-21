@@ -31,35 +31,13 @@ curl http://127.0.0.1:2609/get/message/GLOBAL_POSITION_INT
 ```
 
 ```json
-{"alt":584070,"hdg":35197,"lat":-353632620,"lon":1491652373,"relative_alt":-17,"time_boot_ms":1148808,"vx":1,"vy":-1,"vz":0}
+{"alt":584070,"hdg":35196,"lat":-353632620,"lon":1491652373,"relative_alt":-17,"statistics":{"average_frequency":3.992716958686398,"counter":938,"duration":234.92774712200026,"first":1658392158.7851973,"first_monotonic":6634.220171939,"instant_frequency":3.978920063475837,"last":1658392393.7129443,"last_monotonic":6869.147919061,"latency":0.25132447600026353},"time_boot_ms":2327066,"vx":1,"vy":-1,"vz":0}
 ```
 
 #### Get a specific message by message id
 
 ```bash
 curl http://127.0.0.1:2609/get/message/33
-```
-
-#### Get all message statuses
-
-```bash
-curl http://127.0.0.1:2609/get/status/all
-```
-
-#### Get a specific status by message name
-
-```bash
-curl http://127.0.0.1:2609/get/status/GLOBAL_POSITION_INT
-```
-
-```json
-{"clock":1658320471.5939665,"frequency":3.974224057142368,"latency":0.25162144499699934,"monotonic":18751.838395392}
-```
-
-#### Get a specific status by message id
-
-```bash
-curl http://127.0.0.1:2609/get/status/33
 ```
 
 ### Advanced run and query
@@ -73,7 +51,7 @@ curl http://127.0.0.1:2609/get/message/all
 ```
 
 ```json
-{"ATTITUDE":{"pitch":0.0008510049665346742,"pitchspeed":0.00023347508977167308,"roll":0.0010392718249931931,"rollspeed":0.00027910646167583764,"time_boot_ms":1837558,"yaw":-0.1311929076910019,"yawspeed":0.00020906582358293235},"GLOBAL_POSITION_INT":{"alt":584070,"hdg":35249,"lat":-353632621,"lon":1491652375,"relative_alt":-17,"time_boot_ms":1837558,"vx":-1,"vy":1,"vz":0}}
+{"ATTITUDE":{"pitch":-0.0012523328186944127,"pitchspeed":-0.0002957125543616712,"roll":-0.001061532530002296,"rollspeed":-0.00020833441521972418,"statistics":{"average_frequency":4.453590722351151,"counter":10,"duration":2.2453792059995976,"first":1658392455.4101565,"first_monotonic":6930.84513167,"instant_frequency":3.9732811780329746,"last":1658392457.6555388,"last_monotonic":6933.090510876,"latency":0.25168115599990415},"time_boot_ms":2390818,"yaw":-0.13986118137836456,"yawspeed":-0.0007141817477531731},"GLOBAL_POSITION_INT":{"alt":584070,"hdg":35199,"lat":-353632620,"lon":1491652373,"relative_alt":-17,"statistics":{"average_frequency":4.453193604230211,"counter":10,"duration":2.245579440000256,"first":1658392455.410245,"first_monotonic":6930.845220089,"instant_frequency":3.9706995252477864,"last":1658392457.6558244,"last_monotonic":6933.090799529,"latency":0.251844792999691},"time_boot_ms":2390818,"vx":1,"vy":-1,"vz":0}}
 ```
 
 ## Arguments

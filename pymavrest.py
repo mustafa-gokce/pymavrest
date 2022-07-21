@@ -15,7 +15,6 @@ application = flask.Flask(import_name="pymavrest")
 
 telemetry_data = {}
 message_enumeration = {}
-message_time = {}
 
 
 @application.route(rule="/get/message/all", methods=["GET"])
@@ -48,43 +47,13 @@ def get_message_with_id(message_id):
     return flask.jsonify(result)
 
 
-@application.route(rule="/get/status/all", methods=["GET"])
-def get_status():
-    global message_time
-    return flask.jsonify(message_time)
-
-
-@application.route(rule="/get/status/<string:message_name>", methods=["GET"])
-def get_status_with_name(message_name):
-    global message_time
-    if message_name in message_time:
-        result = message_time[message_name]
-    else:
-        result = {}
-    return flask.jsonify(result)
-
-
-@application.route(rule="/get/status/<int:message_id>", methods=["GET"])
-def get_status_with_name_id(message_id):
-    global message_time, message_enumeration
-    if message_id in message_enumeration.values():
-        message_name = list(message_enumeration.keys())[list(message_enumeration.values()).index(message_id)]
-        if message_name in message_time:
-            result = message_time[message_name]
-        else:
-            result = {}
-    else:
-        result = {}
-    return flask.jsonify(result)
-
-
 @application.errorhandler(code_or_exception=404)
 def page_not_found(error):
     return flask.jsonify({})
 
 
 def receive_telemetry(master, timeout, drop, white, black):
-    global telemetry_data, message_enumeration, message_time
+    global telemetry_data, message_enumeration
 
     if timeout == 0:
         timeout = None
@@ -115,25 +84,39 @@ def receive_telemetry(master, timeout, drop, white, black):
             if len(white_list) > 0 and message_name not in white_list:
                 continue
 
-            telemetry_data[message_name] = message_dict
+            if message_name not in telemetry_data.keys():
+                telemetry_data[message_name] = {}
+
+            telemetry_data[message_name] = {**telemetry_data[message_name], **message_dict}
             message_id = message_raw.get_msgId()
             message_enumeration[message_name] = message_id
             time_monotonic = time.monotonic()
-            if message_name not in message_time.keys():
-                message_time[message_name] = {}
-                message_time[message_name]["latency"] = 0
-                message_time[message_name]["frequency"] = 0
+            time_now = time.time()
+
+            if "statistics" not in telemetry_data[message_name].keys():
+                telemetry_data[message_name]["statistics"] = {}
+                telemetry_data[message_name]["statistics"]["counter"] = 1
+                telemetry_data[message_name]["statistics"]["latency"] = 0
+                telemetry_data[message_name]["statistics"]["first"] = time_now
+                telemetry_data[message_name]["statistics"]["first_monotonic"] = time_monotonic
+                telemetry_data[message_name]["statistics"]["last"] = time_now
+                telemetry_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
+                telemetry_data[message_name]["statistics"]["duration"] = 0
+                telemetry_data[message_name]["statistics"]["instant_frequency"] = 0
+                telemetry_data[message_name]["statistics"]["average_frequency"] = 0
             else:
-                message_time[message_name]["latency"] = time_monotonic - message_time[message_name]["monotonic"]
-                message_time[message_name]["frequency"] = 1.0 / message_time[message_name]["latency"]
-            message_time[message_name]["monotonic"] = time_monotonic
-            message_time[message_name]["clock"] = time.time()
+                telemetry_data[message_name]["statistics"]["counter"] += 1
+                telemetry_data[message_name]["statistics"]["latency"] = time_monotonic - telemetry_data[message_name]["statistics"]["last_monotonic"]
+                telemetry_data[message_name]["statistics"]["last"] = time_now
+                telemetry_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
+                telemetry_data[message_name]["statistics"]["duration"] = telemetry_data[message_name]["statistics"]["last_monotonic"] - telemetry_data[message_name]["statistics"]["first_monotonic"]
+                telemetry_data[message_name]["statistics"]["instant_frequency"] = 1.0 / telemetry_data[message_name]["statistics"]["latency"]
+                telemetry_data[message_name]["statistics"]["average_frequency"] = telemetry_data[message_name]["statistics"]["counter"] / telemetry_data[message_name]["statistics"]["duration"]
 
             if drop:
                 for message_name in list(telemetry_data.keys()):
-                    if time_monotonic - message_time[message_name]["monotonic"] > drop:
+                    if telemetry_data[message_name]["statistics"]["latency"] > drop:
                         telemetry_data.pop(message_name)
-                        message_time.pop(message_name)
 
 
 @click.command()
