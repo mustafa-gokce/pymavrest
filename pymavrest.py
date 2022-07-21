@@ -183,7 +183,7 @@ def receive_telemetry(master, timeout, drop, white, black, param):
 
             if drop:
                 for message_name in list(message_data.keys()):
-                    if message_data[message_name]["statistics"]["latency"] > drop:
+                    if time_monotonic - message_data[message_name]["statistics"]["last_monotonic"] > drop:
                         message_data.pop(message_name)
 
 
