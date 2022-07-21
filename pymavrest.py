@@ -50,6 +50,36 @@ def get_message_with_id(message_id):
     return flask.jsonify(result)
 
 
+@application.route(rule="/get/message/<string:message_name>/<string:field_name>", methods=["GET"])
+def get_message_field_with_name(message_name, field_name):
+    global message_data
+    if message_name in message_data.keys():
+        if field_name in message_data[message_name].keys():
+            result = {field_name: message_data[message_name][field_name]}
+        else:
+            result = {}
+    else:
+        result = {}
+    return flask.jsonify(result)
+
+
+@application.route(rule="/get/message/<int:message_id>/<string:field_name>", methods=["GET"])
+def get_message_field_with_id(message_id, field_name):
+    global message_data, message_enumeration
+    if message_id in message_enumeration.values():
+        message_name = list(message_enumeration.keys())[list(message_enumeration.values()).index(message_id)]
+        if message_name in message_data.keys():
+            if field_name in message_data[message_name].keys():
+                result = {field_name: message_data[message_name][field_name]}
+            else:
+                result = {}
+        else:
+            result = {}
+    else:
+        result = {}
+    return flask.jsonify(result)
+
+
 @application.route(rule="/get/parameter/all", methods=["GET"])
 def get_parameter_all():
     global parameter_data

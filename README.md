@@ -46,6 +46,26 @@ curl http://127.0.0.1:2609/get/message/GLOBAL_POSITION_INT
 curl http://127.0.0.1:2609/get/message/33
 ```
 
+#### Get a specific message field by message name
+
+```bash
+curl http://127.0.0.1:2609/get/message/GLOBAL_POSITION_INT/relative_alt
+```
+
+```json
+{"relative_alt":-17}
+```
+
+#### Get a specific message field by message id
+
+```bash
+curl http://127.0.0.1:2609/get/message/33/alt
+```
+
+```json
+{"alt":584070}
+```
+
 #### Get all parameters
 
 ```bash
