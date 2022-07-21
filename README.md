@@ -46,10 +46,22 @@ curl http://127.0.0.1:2609/get/message/GLOBAL_POSITION_INT
 curl http://127.0.0.1:2609/get/message/33
 ```
 
+#### Get all parameters
+
+```bash
+curl http://127.0.0.1:2609/get/parameter/all
+```
+
+#### Get a specific parameter by name
+
+```bash
+curl http://127.0.0.1:2609/get/parameter/STAT_RUNTIME
+```
+
 ### Advanced run and query
 
 ```bash
-/usr/bin/python3 pymavrest.py --host="127.0.0.1" --port=2609 --master="udpin:127.0.0.1:14550" --timeout=5.0 --drop=5.0 --white="GLOBAL_POSITION_INT,ATTITUDE,VFR_HUD" --black="VFR_HUD"
+/usr/bin/python3 pymavrest.py --host="127.0.0.1" --port=2609 --master="udpin:127.0.0.1:14550" --timeout=5.0 --drop=5.0 --white="GLOBAL_POSITION_INT,ATTITUDE,VFR_HUD" --black="VFR_HUD" --param=True
 ```
 
 ```bash
@@ -71,3 +83,4 @@ curl http://127.0.0.1:2609/get/message/all
 | drop     | float | 5.0                     | Drop non-periodic messages after this seconds, zero means do not drop                        |
 | white    | str   | ""                      | Comma separated white list to filter messages, empty means all messages are in white list    |
 | black    | str   | ""                      | Comma separated black list to filter messages                                                |
+| param    | bool  | True                    | Fetch parameters                                                                             |

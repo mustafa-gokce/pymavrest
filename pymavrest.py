@@ -13,21 +13,24 @@ import flask
 
 application = flask.Flask(import_name="pymavrest")
 
-telemetry_data = {}
+message_data = {}
 message_enumeration = {}
+parameter_data = {}
+parameter_count_total = 0
+parameter_count = []
 
 
 @application.route(rule="/get/message/all", methods=["GET"])
-def get_all():
-    global telemetry_data
-    return flask.jsonify(telemetry_data)
+def get_message_all():
+    global message_data
+    return flask.jsonify(message_data)
 
 
 @application.route(rule="/get/message/<string:message_name>", methods=["GET"])
 def get_message_with_name(message_name):
-    global telemetry_data
-    if message_name in telemetry_data:
-        result = telemetry_data[message_name]
+    global message_data
+    if message_name in message_data.keys():
+        result = message_data[message_name]
     else:
         result = {}
     return flask.jsonify(result)
@@ -35,13 +38,29 @@ def get_message_with_name(message_name):
 
 @application.route(rule="/get/message/<int:message_id>", methods=["GET"])
 def get_message_with_id(message_id):
-    global telemetry_data, message_enumeration
+    global message_data, message_enumeration
     if message_id in message_enumeration.values():
         message_name = list(message_enumeration.keys())[list(message_enumeration.values()).index(message_id)]
-        if message_name in telemetry_data:
-            result = telemetry_data[message_name]
+        if message_name in message_data.keys():
+            result = message_data[message_name]
         else:
             result = {}
+    else:
+        result = {}
+    return flask.jsonify(result)
+
+
+@application.route(rule="/get/parameter/all", methods=["GET"])
+def get_parameter_all():
+    global parameter_data
+    return flask.jsonify(parameter_data)
+
+
+@application.route(rule="/get/parameter/<string:parameter_name>", methods=["GET"])
+def get_parameter_with_name(parameter_name):
+    global parameter_data
+    if parameter_name in parameter_data.keys():
+        result = parameter_data[parameter_name]
     else:
         result = {}
     return flask.jsonify(result)
@@ -52,8 +71,8 @@ def page_not_found(error):
     return flask.jsonify({})
 
 
-def receive_telemetry(master, timeout, drop, white, black):
-    global telemetry_data, message_enumeration
+def receive_telemetry(master, timeout, drop, white, black, param):
+    global message_data, message_enumeration, parameter_data, parameter_count_total, parameter_count
 
     if timeout == 0:
         timeout = None
@@ -61,12 +80,19 @@ def receive_telemetry(master, timeout, drop, white, black):
     if drop == 0:
         drop = None
 
-    white_list = [] if white == "" else white.split(",")
-    black_list = [] if black == "" else black.split(",")
+    white_list = {"PARAM_VALUE"} if white == "" else {"PARAM_VALUE"} | {x for x in white.split(",")}
+    black_list = {} if black == "" else {x for x in black.split(",")}
+
+    if not param:
+        black_list |= {"PARAM_VALUE"}
 
     while True:
 
         vehicle = utility.mavlink_connection(device=master)
+
+        if param:
+            vehicle.wait_heartbeat()
+            vehicle.mav.param_request_list_send(vehicle.target_system, vehicle.target_component)
 
         while True:
 
@@ -81,42 +107,54 @@ def receive_telemetry(master, timeout, drop, white, black):
             if message_name in black_list:
                 continue
 
-            if len(white_list) > 0 and message_name not in white_list:
+            if len(white_list) > 1 and message_name not in white_list:
                 continue
 
-            if message_name not in telemetry_data.keys():
-                telemetry_data[message_name] = {}
+            if message_name == "PARAM_VALUE":
+                parameter_data[message_dict["param_id"]] = message_dict["param_value"]
+                parameter_count_total = message_dict["param_count"]
+                parameter_count.append(message_dict["param_index"])
+                continue
 
-            telemetry_data[message_name] = {**telemetry_data[message_name], **message_dict}
+            if param and parameter_count_total != len(parameter_data):
+                for i in range(parameter_count_total):
+                    if i not in parameter_count:
+                        vehicle.mav.param_request_read_send(vehicle.target_system, vehicle.target_component, b"", i)
+                        break
+
+            if message_name not in message_data.keys():
+                message_data[message_name] = {}
+
+            message_data[message_name] = {**message_data[message_name], **message_dict}
             message_id = message_raw.get_msgId()
             message_enumeration[message_name] = message_id
             time_monotonic = time.monotonic()
             time_now = time.time()
 
-            if "statistics" not in telemetry_data[message_name].keys():
-                telemetry_data[message_name]["statistics"] = {}
-                telemetry_data[message_name]["statistics"]["counter"] = 1
-                telemetry_data[message_name]["statistics"]["latency"] = 0
-                telemetry_data[message_name]["statistics"]["first"] = time_now
-                telemetry_data[message_name]["statistics"]["first_monotonic"] = time_monotonic
-                telemetry_data[message_name]["statistics"]["last"] = time_now
-                telemetry_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
-                telemetry_data[message_name]["statistics"]["duration"] = 0
-                telemetry_data[message_name]["statistics"]["instant_frequency"] = 0
-                telemetry_data[message_name]["statistics"]["average_frequency"] = 0
+            if "statistics" not in message_data[message_name].keys():
+                message_data[message_name]["statistics"] = {}
+                message_data[message_name]["statistics"]["counter"] = 1
+                message_data[message_name]["statistics"]["latency"] = 0
+                message_data[message_name]["statistics"]["first"] = time_now
+                message_data[message_name]["statistics"]["first_monotonic"] = time_monotonic
+                message_data[message_name]["statistics"]["last"] = time_now
+                message_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
+                message_data[message_name]["statistics"]["duration"] = 0
+                message_data[message_name]["statistics"]["instant_frequency"] = 0
+                message_data[message_name]["statistics"]["average_frequency"] = 0
             else:
-                telemetry_data[message_name]["statistics"]["counter"] += 1
-                telemetry_data[message_name]["statistics"]["latency"] = time_monotonic - telemetry_data[message_name]["statistics"]["last_monotonic"]
-                telemetry_data[message_name]["statistics"]["last"] = time_now
-                telemetry_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
-                telemetry_data[message_name]["statistics"]["duration"] = telemetry_data[message_name]["statistics"]["last_monotonic"] - telemetry_data[message_name]["statistics"]["first_monotonic"]
-                telemetry_data[message_name]["statistics"]["instant_frequency"] = 1.0 / telemetry_data[message_name]["statistics"]["latency"]
-                telemetry_data[message_name]["statistics"]["average_frequency"] = telemetry_data[message_name]["statistics"]["counter"] / telemetry_data[message_name]["statistics"]["duration"]
+                message_data[message_name]["statistics"]["counter"] += 1
+                message_data[message_name]["statistics"]["latency"] = time_monotonic - message_data[message_name]["statistics"]["last_monotonic"]
+                message_data[message_name]["statistics"]["last"] = time_now
+                message_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
+                message_data[message_name]["statistics"]["duration"] = message_data[message_name]["statistics"]["last_monotonic"] - message_data[message_name]["statistics"]["first_monotonic"]
+                message_data[message_name]["statistics"]["instant_frequency"] = 1.0 / message_data[message_name]["statistics"]["latency"]
+                message_data[message_name]["statistics"]["average_frequency"] = message_data[message_name]["statistics"]["counter"] / message_data[message_name]["statistics"]["duration"]
 
             if drop:
-                for message_name in list(telemetry_data.keys()):
-                    if telemetry_data[message_name]["statistics"]["latency"] > drop:
-                        telemetry_data.pop(message_name)
+                for message_name in list(message_data.keys()):
+                    if message_data[message_name]["statistics"]["latency"] > drop:
+                        message_data.pop(message_name)
 
 
 @click.command()
@@ -134,8 +172,10 @@ def receive_telemetry(master, timeout, drop, white, black):
               help="Comma separated white list to filter messages, empty means all messages are in white list.")
 @click.option("--black", default="", type=click.STRING, required=False,
               help="Comma separated black list to filter messages.")
-def main(host, port, master, timeout, drop, white, black):
-    threading.Thread(target=receive_telemetry, args=(master, timeout, drop, white, black)).start()
+@click.option("--param", default=True, type=click.BOOL, required=False,
+              help="Fetch parameters.")
+def main(host, port, master, timeout, drop, white, black, param):
+    threading.Thread(target=receive_telemetry, args=(master, timeout, drop, white, black, param)).start()
     server = gevent.pywsgi.WSGIServer(listener=(host, port), application=application, log=application.logger)
     server.serve_forever()
 
