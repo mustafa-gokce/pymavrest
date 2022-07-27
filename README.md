@@ -79,7 +79,23 @@ curl http://127.0.0.1:2609/get/parameter/STAT_RUNTIME
 ```
 
 ```json
-{"STAT_RUNTIME":37280.0}
+{"STAT_RUNTIME":{"statistics":{"average_frequency":0.04563327537308594,"counter":3,"duration":43.82766706199618,"first":1659120473.6298168,"first_monotonic":41638.127151403,"instant_frequency":0.03223455110705248,"last":1659120517.4574845,"last_monotonic":41681.954818465,"latency":31.022612868997385},"value":8897.0}}
+```
+
+#### Get all plan
+
+```bash
+curl http://127.0.0.1:2609/get/plan/all
+```
+
+#### Get a specific mission plan item by id
+
+```bash
+curl http://127.0.0.1:2609/get/plan/1
+```
+
+```json
+{"autocontinue":1,"command":22,"current":0,"frame":3,"mission_type":0,"param1":0.0,"param2":0.0,"param3":0.0,"param4":0.0,"seq":1,"statistics":{"average_frequency":0,"counter":1,"duration":0,"first":1659097224.3198915,"first_monotonic":20229.831076511,"instant_frequency":0,"last":1659097224.3198915,"last_monotonic":20229.831076511,"latency":0},"target_component":0,"target_system":255,"x":0,"y":0,"z":50.0}
 ```
 
 ### Advanced run and query
@@ -108,3 +124,4 @@ curl http://127.0.0.1:2609/get/message/all
 | white    | str   | ""                      | Comma separated white list to filter messages, empty means all messages are in white list    |
 | black    | str   | ""                      | Comma separated black list to filter messages                                                |
 | param    | bool  | True                    | Fetch parameters                                                                             |
+| plan     | bool  | True                    | Fetch plan                                                                                   |
