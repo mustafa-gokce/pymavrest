@@ -82,6 +82,22 @@ curl http://127.0.0.1:2609/get/parameter/STAT_RUNTIME
 {"STAT_RUNTIME":37280.0}
 ```
 
+#### Get all plan
+
+```bash
+curl http://127.0.0.1:2609/get/plan/all
+```
+
+#### Get a specific mission plan item by id
+
+```bash
+curl http://127.0.0.1:2609/get/plan/1
+```
+
+```json
+{"autocontinue":1,"command":22,"current":0,"frame":3,"mission_type":0,"param1":0.0,"param2":0.0,"param3":0.0,"param4":0.0,"seq":1,"statistics":{"average_frequency":0,"counter":1,"duration":0,"first":1659097224.3198915,"first_monotonic":20229.831076511,"instant_frequency":0,"last":1659097224.3198915,"last_monotonic":20229.831076511,"latency":0},"target_component":0,"target_system":255,"x":0,"y":0,"z":50.0}
+```
+
 ### Advanced run and query
 
 ```bash
