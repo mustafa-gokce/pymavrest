@@ -66,6 +66,18 @@ class EndpointsReachableTest(unittest.TestCase):
         data = requests.get(url=link).json()
         self.assertNotEqual(data, {})
 
+    def test_get_fence_all(self):
+        global IP, PORT
+        link = f"http://{IP}:{PORT}/get/fence/all"
+        data = requests.get(url=link).json()
+        self.assertNotEqual(data, {})
+
+    def test_get_fence_with_index(self):
+        global IP, PORT
+        link = f"http://{IP}:{PORT}/get/fence/0"
+        data = requests.get(url=link).json()
+        self.assertNotEqual(data, {})
+
 
 if __name__ == '__main__':
     unittest.main()

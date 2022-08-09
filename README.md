@@ -24,7 +24,7 @@ cd pymavrest/
 curl http://127.0.0.1:2609/get/message/all
 ```
 
-Sample data can be found in the [sample.json](sample.json) file.
+Sample data can be found in the [sample.json](sample/get_message_all.json) file.
 
 ```bash
 curl https://raw.githubusercontent.com/mustafa-gokce/pymavrest/main/sample.json
@@ -98,10 +98,26 @@ curl http://127.0.0.1:2609/get/plan/1
 {"autocontinue":1,"command":22,"current":0,"frame":3,"mission_type":0,"param1":0.0,"param2":0.0,"param3":0.0,"param4":0.0,"seq":1,"statistics":{"average_frequency":0,"counter":1,"duration":0,"first":1659097224.3198915,"first_monotonic":20229.831076511,"instant_frequency":0,"last":1659097224.3198915,"last_monotonic":20229.831076511,"latency":0},"target_component":0,"target_system":255,"x":0,"y":0,"z":50.0}
 ```
 
+#### Get all fence
+
+```bash
+curl http://127.0.0.1:2609/get/fence/all
+```
+
+#### Get a specific fence item by id
+
+```bash
+curl http://127.0.0.1:2609/get/fence/1
+```
+
+```json
+{"count":6,"idx":1,"lat":-35.35980224609375,"lng":149.16319274902344,"statistics":{"average_frequency":0,"counter":1,"duration":0,"first":1660055296.6694324,"first_monotonic":28660.054151877,"instant_frequency":0,"last":1660055296.6694324,"last_monotonic":28660.054151877,"latency":0},"target_component":0,"target_system":255}
+```
+
 ### Advanced run and query
 
 ```bash
-/usr/bin/python3 pymavrest.py --host="127.0.0.1" --port=2609 --master="udpin:127.0.0.1:14550" --timeout=5.0 --drop=5.0 --white="GLOBAL_POSITION_INT,ATTITUDE,VFR_HUD" --black="VFR_HUD" --param=True
+/usr/bin/python3 pymavrest.py --host="127.0.0.1" --port=2609 --master="udpin:127.0.0.1:14550" --timeout=5.0 --drop=5.0 --white="GLOBAL_POSITION_INT,ATTITUDE,VFR_HUD" --black="VFR_HUD" --param=True --plan=True --fence=True
 ```
 
 ```bash
@@ -109,7 +125,7 @@ curl http://127.0.0.1:2609/get/message/all
 ```
 
 ```json
-{"ATTITUDE":{"pitch":-0.0012523328186944127,"pitchspeed":-0.0002957125543616712,"roll":-0.001061532530002296,"rollspeed":-0.00020833441521972418,"statistics":{"average_frequency":4.453590722351151,"counter":10,"duration":2.2453792059995976,"first":1658392455.4101565,"first_monotonic":6930.84513167,"instant_frequency":3.9732811780329746,"last":1658392457.6555388,"last_monotonic":6933.090510876,"latency":0.25168115599990415},"time_boot_ms":2390818,"yaw":-0.13986118137836456,"yawspeed":-0.0007141817477531731},"GLOBAL_POSITION_INT":{"alt":584070,"hdg":35199,"lat":-353632620,"lon":1491652373,"relative_alt":-17,"statistics":{"average_frequency":4.453193604230211,"counter":10,"duration":2.245579440000256,"first":1658392455.410245,"first_monotonic":6930.845220089,"instant_frequency":3.9706995252477864,"last":1658392457.6558244,"last_monotonic":6933.090799529,"latency":0.251844792999691},"time_boot_ms":2390818,"vx":1,"vy":-1,"vz":0}}
+{"ATTITUDE":{"pitch":-0.0009615588351152837,"pitchspeed":-0.00013825629139319062,"roll":-0.0007417603628709912,"rollspeed":-0.0001102022361010313,"statistics":{"average_frequency":3.992590263518338,"counter":6,"duration":1.2523198400012916,"first":1660055296.9819467,"first_monotonic":28660.366665863,"instant_frequency":4.073447899117448,"last":1660055298.2342658,"last_monotonic":28661.618985703,"latency":0.24549227700117626},"time_boot_ms":14405031,"yaw":-0.13958577811717987,"yawspeed":-0.0006176364840939641},"GLOBAL_POSITION_INT":{"alt":584070,"hdg":35201,"lat":-353632620,"lon":1491652373,"relative_alt":-17,"statistics":{"average_frequency":3.9926913529235,"counter":6,"duration":1.2522881330005475,"first":1660055296.98224,"first_monotonic":28660.366959684,"instant_frequency":4.075237972571812,"last":1660055298.2345283,"last_monotonic":28661.619247817,"latency":0.24538444300196716},"time_boot_ms":14405031,"vx":1,"vy":-1,"vz":0}}
 ```
 
 ## Arguments
@@ -125,3 +141,4 @@ curl http://127.0.0.1:2609/get/message/all
 | black    | str   | ""                      | Comma separated black list to filter messages                                                |
 | param    | bool  | True                    | Fetch parameters                                                                             |
 | plan     | bool  | True                    | Fetch plan                                                                                   |
+| fence    | bool  | True                    | Fetch fence                                                                                  |

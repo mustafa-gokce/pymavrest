@@ -24,6 +24,9 @@ parameter_count = set()
 plan_data = []
 plan_count_total = 0
 plan_count = set()
+fence_data = []
+fence_count_total = 0
+fence_count = set()
 
 
 # get all messages
@@ -227,6 +230,35 @@ def get_plan_with_index(plan_index):
     return flask.jsonify(result)
 
 
+# get all fence
+@application.route(rule="/get/fence/all", methods=["GET"])
+def get_fence_all():
+    # get entire fence
+    global fence_data
+
+    # expose the response
+    return flask.jsonify(fence_data)
+
+
+# get a fence item by index
+@application.route(rule="/get/fence/<int:fence_index>", methods=["GET"])
+def get_fence_with_index(fence_index):
+    # get entire fence
+    global fence_data
+
+    # create empty response
+    result = {}
+
+    # find the requested fence item by index
+    for fence_item in fence_data:
+        if fence_item["idx"] == fence_index:
+            result = fence_item
+            break
+
+    # expose the response
+    return flask.jsonify(result)
+
+
 # deal with the malicious requests
 @application.errorhandler(code_or_exception=404)
 def page_not_found(error):
@@ -235,11 +267,12 @@ def page_not_found(error):
 
 
 # connect to vehicle and parse messages
-def receive_telemetry(master, timeout, drop, white, black, param, plan):
+def receive_telemetry(master, timeout, drop, white, black, param, plan, fence):
     # get global variables
     global message_data, message_enumeration
     global parameter_data, parameter_count_total, parameter_count
     global plan_data, plan_count_total, plan_count
+    global fence_data, fence_count_total, fence_count
 
     # zero time out means do not time out
     if timeout == 0:
@@ -250,7 +283,7 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan):
         drop = None
 
     # create white list set used in non-periodic parameter and flight plan related messages
-    white_list = {"PARAM_VALUE", "MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK"}
+    white_list = {"PARAM_VALUE", "MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "FENCE_POINT"}
 
     # parse white list based on user requirements
     white_list = white_list if white == "" else white_list | {x for x in white.split(",")}
@@ -267,6 +300,11 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan):
     if not plan:
         # add flight plan related messages to black list
         black_list |= {"MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK"}
+
+    # user did not request to populate fence
+    if not fence:
+        # add fence related messages to black list
+        black_list |= {"FENCE_POINT"}
 
     # infinite connection loop
     while True:
@@ -366,6 +404,16 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan):
                     parameter_data[message_dict["param_id"]]["statistics"]["instant_frequency"] = instant_frequency
                     parameter_data[message_dict["param_id"]]["statistics"]["average_frequency"] = average_frequency
 
+                # update fence count
+                if message_dict["param_id"] == "FENCE_TOTAL":
+                    # clear fence related variables
+                    fence_data = []
+                    fence_count = set()
+                    fence_count_total = int(message_dict["param_value"])
+
+                    # request first fence item from vehicle
+                    vehicle.mav.fence_fetch_point_send(vehicle.target_system, vehicle.target_component, 0)
+
                 # do not proceed further
                 continue
 
@@ -397,7 +445,9 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan):
 
                 # check this count is for flight plan
                 if message_dict["mission_type"] == 0:
-                    # update total flight plan command count
+                    # clear flight plan related variables
+                    plan_data = []
+                    plan_count = set()
                     plan_count_total = message_dict["count"]
 
                     # request first flight plan command from vehicle
@@ -443,6 +493,45 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan):
                 for i in range(plan_count_total):
                     if i not in plan_count:
                         vehicle.mav.mission_request_int_send(vehicle.target_system, vehicle.target_component, i)
+                        break
+
+            # message contains a fence item
+            if message_name == "FENCE_POINT":
+
+                # check this fence item was not populated before
+                if message_dict["idx"] not in fence_count:
+
+                    # initiate statistics data for this fence item
+                    message_dict["statistics"] = {}
+                    message_dict["statistics"]["counter"] = 1
+                    message_dict["statistics"]["latency"] = 0
+                    message_dict["statistics"]["first"] = time_now
+                    message_dict["statistics"]["first_monotonic"] = time_monotonic
+                    message_dict["statistics"]["last"] = time_now
+                    message_dict["statistics"]["last_monotonic"] = time_monotonic
+                    message_dict["statistics"]["duration"] = 0
+                    message_dict["statistics"]["instant_frequency"] = 0
+                    message_dict["statistics"]["average_frequency"] = 0
+
+                    # add fence item to fence data
+                    fence_data.append(message_dict)
+
+                    # add fence item to fence count list to no request this again
+                    fence_count.add(message_dict["idx"])
+
+                    # request the next fence item if there are any
+                    if message_dict["idx"] < fence_count_total - 1:
+                        idx = message_dict["idx"] + 1
+                        vehicle.mav.fence_fetch_point_send(vehicle.target_system, vehicle.target_component, idx)
+
+                # do not proceed further
+                continue
+
+            # there are still unpopulated fence items so request them
+            if fence and fence_count_total != len(fence_count):
+                for i in range(fence_count_total):
+                    if i not in fence_count:
+                        vehicle.mav.fence_fetch_point_send(vehicle.target_system, vehicle.target_component, i)
                         break
 
             # create a message field in message data if this ordinary message not populated before
@@ -517,9 +606,12 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan):
               help="Fetch parameters.")
 @click.option("--plan", default=True, type=click.BOOL, required=False,
               help="Fetch plan.")
-def main(host, port, master, timeout, drop, white, black, param, plan):
+@click.option("--fence", default=True, type=click.BOOL, required=False,
+              help="Fetch fence.")
+def main(host, port, master, timeout, drop, white, black, param, plan, fence):
     # start telemetry receiver thread
-    threading.Thread(target=receive_telemetry, args=(master, timeout, drop, white, black, param, plan)).start()
+    threading.Thread(target=receive_telemetry, args=(master, timeout, drop, white, black,
+                                                     param, plan, fence)).start()
 
     # create server
     server = gevent.pywsgi.WSGIServer(listener=(host, port), application=application, log=application.logger)
