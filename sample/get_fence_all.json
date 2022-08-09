@@ -1,0 +1,116 @@
+[
+  {
+    "count": 6,
+    "idx": 0,
+    "lat": -35.36238479614258,
+    "lng": 149.1647186279297,
+    "statistics": {
+      "average_frequency": 0,
+      "counter": 1,
+      "duration": 0,
+      "first": 1660055527.6656458,
+      "first_monotonic": 28891.050365347,
+      "instant_frequency": 0,
+      "last": 1660055527.6656458,
+      "last_monotonic": 28891.050365347,
+      "latency": 0
+    },
+    "target_component": 0,
+    "target_system": 255
+  },
+  {
+    "count": 6,
+    "idx": 1,
+    "lat": -35.35980224609375,
+    "lng": 149.16319274902344,
+    "statistics": {
+      "average_frequency": 0,
+      "counter": 1,
+      "duration": 0,
+      "first": 1660055527.6720877,
+      "first_monotonic": 28891.056806773,
+      "instant_frequency": 0,
+      "last": 1660055527.6720877,
+      "last_monotonic": 28891.056806773,
+      "latency": 0
+    },
+    "target_component": 0,
+    "target_system": 255
+  },
+  {
+    "count": 6,
+    "idx": 2,
+    "lat": -35.36189270019531,
+    "lng": 149.16925048828125,
+    "statistics": {
+      "average_frequency": 0,
+      "counter": 1,
+      "duration": 0,
+      "first": 1660055527.6778858,
+      "first_monotonic": 28891.062605384,
+      "instant_frequency": 0,
+      "last": 1660055527.6778858,
+      "last_monotonic": 28891.062605384,
+      "latency": 0
+    },
+    "target_component": 0,
+    "target_system": 255
+  },
+  {
+    "count": 6,
+    "idx": 3,
+    "lat": -35.364967346191406,
+    "lng": 149.16378784179688,
+    "statistics": {
+      "average_frequency": 0,
+      "counter": 1,
+      "duration": 0,
+      "first": 1660055527.6853557,
+      "first_monotonic": 28891.070075358,
+      "instant_frequency": 0,
+      "last": 1660055527.6853557,
+      "last_monotonic": 28891.070075358,
+      "latency": 0
+    },
+    "target_component": 0,
+    "target_system": 255
+  },
+  {
+    "count": 6,
+    "idx": 4,
+    "lat": -35.36134338378906,
+    "lng": 149.16017150878906,
+    "statistics": {
+      "average_frequency": 0,
+      "counter": 1,
+      "duration": 0,
+      "first": 1660055527.6972387,
+      "first_monotonic": 28891.081958648,
+      "instant_frequency": 0,
+      "last": 1660055527.6972387,
+      "last_monotonic": 28891.081958648,
+      "latency": 0
+    },
+    "target_component": 0,
+    "target_system": 255
+  },
+  {
+    "count": 6,
+    "idx": 5,
+    "lat": -35.35980224609375,
+    "lng": 149.16319274902344,
+    "statistics": {
+      "average_frequency": 0,
+      "counter": 1,
+      "duration": 0,
+      "first": 1660055527.7024937,
+      "first_monotonic": 28891.087213059,
+      "instant_frequency": 0,
+      "last": 1660055527.7024937,
+      "last_monotonic": 28891.087213059,
+      "latency": 0
+    },
+    "target_component": 0,
+    "target_system": 255
+  }
+]
