@@ -393,6 +393,52 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
             time_monotonic = time.monotonic()
             time_now = time.time()
 
+            # create a message field in message data if this ordinary message not populated before
+            if message_name not in message_data.keys():
+                message_data[message_name] = {}
+
+            # update message fields with new fetched data
+            message_data[message_name] = {**message_data[message_name], **message_dict}
+
+            # get message id of this message
+            message_id = message_raw.get_msgId()
+
+            # add message id of this message to message enumeration list
+            message_enumeration[message_name] = message_id
+
+            # this message is populated for the first time
+            if "statistics" not in message_data[message_name].keys():
+
+                # initiate statistics data for this message
+                message_data[message_name]["statistics"] = {}
+                message_data[message_name]["statistics"]["counter"] = 1
+                message_data[message_name]["statistics"]["latency"] = 0
+                message_data[message_name]["statistics"]["first"] = time_now
+                message_data[message_name]["statistics"]["first_monotonic"] = time_monotonic
+                message_data[message_name]["statistics"]["last"] = time_now
+                message_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
+                message_data[message_name]["statistics"]["duration"] = 0
+                message_data[message_name]["statistics"]["instant_frequency"] = 0
+                message_data[message_name]["statistics"]["average_frequency"] = 0
+
+            # this message was populated before
+            else:
+
+                # update statistics data for this message
+                latency = time_monotonic - message_data[message_name]["statistics"]["last_monotonic"]
+                first_monotonic = message_data[message_name]["statistics"]["first_monotonic"]
+                duration = time_monotonic - first_monotonic
+                instant_frequency = 1.0 / latency if latency != 0.0 else 0.0
+                counter = message_data[message_name]["statistics"]["counter"]
+                average_frequency = counter / duration if duration != 0.0 else 0
+                message_data[message_name]["statistics"]["counter"] += 1
+                message_data[message_name]["statistics"]["latency"] = latency
+                message_data[message_name]["statistics"]["last"] = time_now
+                message_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
+                message_data[message_name]["statistics"]["duration"] = duration
+                message_data[message_name]["statistics"]["instant_frequency"] = instant_frequency
+                message_data[message_name]["statistics"]["average_frequency"] = average_frequency
+
             # message contains a parameter value
             if message_name == "PARAM_VALUE":
 
@@ -620,52 +666,6 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
                     if i not in rally_count:
                         vehicle.mav.rally_fetch_point_send(vehicle.target_system, vehicle.target_component, i)
                         break
-
-            # create a message field in message data if this ordinary message not populated before
-            if message_name not in message_data.keys():
-                message_data[message_name] = {}
-
-            # update message fields with new fetched data
-            message_data[message_name] = {**message_data[message_name], **message_dict}
-
-            # get message id of this message
-            message_id = message_raw.get_msgId()
-
-            # add message id of this message to message enumeration list
-            message_enumeration[message_name] = message_id
-
-            # this message is populated for the first time
-            if "statistics" not in message_data[message_name].keys():
-
-                # initiate statistics data for this message
-                message_data[message_name]["statistics"] = {}
-                message_data[message_name]["statistics"]["counter"] = 1
-                message_data[message_name]["statistics"]["latency"] = 0
-                message_data[message_name]["statistics"]["first"] = time_now
-                message_data[message_name]["statistics"]["first_monotonic"] = time_monotonic
-                message_data[message_name]["statistics"]["last"] = time_now
-                message_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
-                message_data[message_name]["statistics"]["duration"] = 0
-                message_data[message_name]["statistics"]["instant_frequency"] = 0
-                message_data[message_name]["statistics"]["average_frequency"] = 0
-
-            # this message was populated before
-            else:
-
-                # update statistics data for this message
-                latency = time_monotonic - message_data[message_name]["statistics"]["last_monotonic"]
-                first_monotonic = message_data[message_name]["statistics"]["first_monotonic"]
-                duration = time_monotonic - first_monotonic
-                instant_frequency = 1.0 / latency if latency != 0.0 else 0.0
-                counter = message_data[message_name]["statistics"]["counter"]
-                average_frequency = counter / duration if duration != 0.0 else 0
-                message_data[message_name]["statistics"]["counter"] += 1
-                message_data[message_name]["statistics"]["latency"] = latency
-                message_data[message_name]["statistics"]["last"] = time_now
-                message_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
-                message_data[message_name]["statistics"]["duration"] = duration
-                message_data[message_name]["statistics"]["instant_frequency"] = instant_frequency
-                message_data[message_name]["statistics"]["average_frequency"] = average_frequency
 
             # drop non-periodic messages if user requested
             if drop:
