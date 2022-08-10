@@ -114,10 +114,26 @@ curl http://127.0.0.1:2609/get/fence/1
 {"count":6,"idx":1,"lat":-35.35980224609375,"lng":149.16319274902344,"statistics":{"average_frequency":0,"counter":1,"duration":0,"first":1660055296.6694324,"first_monotonic":28660.054151877,"instant_frequency":0,"last":1660055296.6694324,"last_monotonic":28660.054151877,"latency":0},"target_component":0,"target_system":255}
 ```
 
+#### Get all rally
+
+```bash
+curl http://127.0.0.1:2609/get/rally/all
+```
+
+#### Get a specific rally item by id
+
+```bash
+curl http://127.0.0.1:2609/get/rally/0
+```
+
+```json
+{"alt":100,"break_alt":40,"count":2,"flags":0,"idx":0,"land_dir":0,"lat":-353608816,"lng":1491632271,"statistics":{"average_frequency":0,"counter":1,"duration":0,"first":1660120011.4000502,"first_monotonic":6584.331569675,"instant_frequency":0,"last":1660120011.4000502,"last_monotonic":6584.331569675,"latency":0},"target_component":0,"target_system":255}
+```
+
 ### Advanced run and query
 
 ```bash
-/usr/bin/python3 pymavrest.py --host="127.0.0.1" --port=2609 --master="udpin:127.0.0.1:14550" --timeout=5.0 --drop=5.0 --white="GLOBAL_POSITION_INT,ATTITUDE,VFR_HUD" --black="VFR_HUD" --param=True --plan=True --fence=True
+/usr/bin/python3 pymavrest.py --host="127.0.0.1" --port=2609 --master="udpin:127.0.0.1:14550" --timeout=5.0 --drop=5.0 --white="GLOBAL_POSITION_INT,ATTITUDE,VFR_HUD" --black="VFR_HUD" --param=True --plan=True --fence=True --rally=True
 ```
 
 ```bash
@@ -142,3 +158,4 @@ curl http://127.0.0.1:2609/get/message/all
 | param    | bool  | True                    | Fetch parameters                                                                             |
 | plan     | bool  | True                    | Fetch plan                                                                                   |
 | fence    | bool  | True                    | Fetch fence                                                                                  |
+| rally    | bool  | True                    | Fetch rally                                                                                  |

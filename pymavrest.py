@@ -27,6 +27,9 @@ plan_count = set()
 fence_data = []
 fence_count_total = 0
 fence_count = set()
+rally_data = []
+rally_count_total = 0
+rally_count = set()
 
 
 # get all messages
@@ -259,6 +262,35 @@ def get_fence_with_index(fence_index):
     return flask.jsonify(result)
 
 
+# get all rally
+@application.route(rule="/get/rally/all", methods=["GET"])
+def get_rally_all():
+    # get entire rally
+    global rally_data
+
+    # expose the response
+    return flask.jsonify(rally_data)
+
+
+# get a rally item by index
+@application.route(rule="/get/rally/<int:rally_index>", methods=["GET"])
+def get_rally_with_index(rally_index):
+    # get entire rally
+    global rally_data
+
+    # create empty response
+    result = {}
+
+    # find the requested rally item by index
+    for rally_item in rally_data:
+        if rally_item["idx"] == rally_index:
+            result = rally_item
+            break
+
+    # expose the response
+    return flask.jsonify(result)
+
+
 # deal with the malicious requests
 @application.errorhandler(code_or_exception=404)
 def page_not_found(error):
@@ -267,12 +299,13 @@ def page_not_found(error):
 
 
 # connect to vehicle and parse messages
-def receive_telemetry(master, timeout, drop, white, black, param, plan, fence):
+def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, rally):
     # get global variables
     global message_data, message_enumeration
     global parameter_data, parameter_count_total, parameter_count
     global plan_data, plan_count_total, plan_count
     global fence_data, fence_count_total, fence_count
+    global rally_data, rally_count_total, rally_count
 
     # zero time out means do not time out
     if timeout == 0:
@@ -283,7 +316,7 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence):
         drop = None
 
     # create white list set used in non-periodic parameter and flight plan related messages
-    white_list = {"PARAM_VALUE", "MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "FENCE_POINT"}
+    white_list = {"PARAM_VALUE", "MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "FENCE_POINT", "RALLY_POINT"}
 
     # parse white list based on user requirements
     white_list = white_list if white == "" else white_list | {x for x in white.split(",")}
@@ -305,6 +338,11 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence):
     if not fence:
         # add fence related messages to black list
         black_list |= {"FENCE_POINT"}
+
+    # user did not request to populate rally
+    if not rally:
+        # add rally related messages to black list
+        black_list |= {"RALLY_POINT"}
 
     # infinite connection loop
     while True:
@@ -413,6 +451,16 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence):
 
                     # request first fence item from vehicle
                     vehicle.mav.fence_fetch_point_send(vehicle.target_system, vehicle.target_component, 0)
+
+                # update rally count
+                elif message_dict["param_id"] == "RALLY_TOTAL":
+                    # clear rally related variables
+                    rally_data = []
+                    rally_count = set()
+                    rally_count_total = int(message_dict["param_value"])
+
+                    # request first rally item from vehicle
+                    vehicle.mav.rally_fetch_point_send(vehicle.target_system, vehicle.target_component, 0)
 
                 # do not proceed further
                 continue
@@ -534,6 +582,45 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence):
                         vehicle.mav.fence_fetch_point_send(vehicle.target_system, vehicle.target_component, i)
                         break
 
+            # message contains a rally item
+            if message_name == "RALLY_POINT":
+
+                # check this rally item was not populated before
+                if message_dict["idx"] not in rally_count:
+
+                    # initiate statistics data for this rally item
+                    message_dict["statistics"] = {}
+                    message_dict["statistics"]["counter"] = 1
+                    message_dict["statistics"]["latency"] = 0
+                    message_dict["statistics"]["first"] = time_now
+                    message_dict["statistics"]["first_monotonic"] = time_monotonic
+                    message_dict["statistics"]["last"] = time_now
+                    message_dict["statistics"]["last_monotonic"] = time_monotonic
+                    message_dict["statistics"]["duration"] = 0
+                    message_dict["statistics"]["instant_frequency"] = 0
+                    message_dict["statistics"]["average_frequency"] = 0
+
+                    # add rally item to rally data
+                    rally_data.append(message_dict)
+
+                    # add rally item to rally count list to no request this again
+                    rally_count.add(message_dict["idx"])
+
+                    # request the next rally item if there are any
+                    if message_dict["idx"] < rally_count_total - 1:
+                        idx = message_dict["idx"] + 1
+                        vehicle.mav.rally_fetch_point_send(vehicle.target_system, vehicle.target_component, idx)
+
+                # do not proceed further
+                continue
+
+            # there are still unpopulated rally items so request them
+            if rally and rally_count_total != len(rally_count):
+                for i in range(rally_count_total):
+                    if i not in rally_count:
+                        vehicle.mav.rally_fetch_point_send(vehicle.target_system, vehicle.target_component, i)
+                        break
+
             # create a message field in message data if this ordinary message not populated before
             if message_name not in message_data.keys():
                 message_data[message_name] = {}
@@ -608,10 +695,12 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence):
               help="Fetch plan.")
 @click.option("--fence", default=True, type=click.BOOL, required=False,
               help="Fetch fence.")
-def main(host, port, master, timeout, drop, white, black, param, plan, fence):
+@click.option("--rally", default=True, type=click.BOOL, required=False,
+              help="Fetch rally.")
+def main(host, port, master, timeout, drop, white, black, param, plan, fence, rally):
     # start telemetry receiver thread
     threading.Thread(target=receive_telemetry, args=(master, timeout, drop, white, black,
-                                                     param, plan, fence)).start()
+                                                     param, plan, fence, rally)).start()
 
     # create server
     server = gevent.pywsgi.WSGIServer(listener=(host, port), application=application, log=application.logger)

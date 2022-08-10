@@ -78,6 +78,18 @@ class EndpointsReachableTest(unittest.TestCase):
         data = requests.get(url=link).json()
         self.assertNotEqual(data, {})
 
+    def test_get_rally_all(self):
+        global IP, PORT
+        link = f"http://{IP}:{PORT}/get/rally/all"
+        data = requests.get(url=link).json()
+        self.assertNotEqual(data, {})
+
+    def test_get_rally_with_index(self):
+        global IP, PORT
+        link = f"http://{IP}:{PORT}/get/rally/0"
+        data = requests.get(url=link).json()
+        self.assertNotEqual(data, {})
+
 
 if __name__ == '__main__':
     unittest.main()
