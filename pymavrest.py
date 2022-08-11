@@ -11,6 +11,7 @@ import click
 import pymavlink.mavutil as utility
 import gevent.pywsgi
 import flask
+import jsonschema
 
 # create a flask application
 application = flask.Flask(import_name="pymavrest")
@@ -30,6 +31,48 @@ fence_count = set()
 rally_data = []
 rally_count_total = 0
 rally_count = set()
+
+# COMMAND_LONG schema for validation
+schema_command_long = {
+    "type": "object",
+    "properties": {
+        "target_system": {"type": "integer", "minimum": 0, "maximum": 255},
+        "target_component": {"type": "integer", "minimum": 0, "maximum": 255},
+        "command": {"type": "integer", "minimum": 0, "maximum": 65535},
+        "confirmation": {"type": "integer", "minimum": 0, "maximum": 255},
+        "param1": {"type": "number"},
+        "param2": {"type": "number"},
+        "param3": {"type": "number"},
+        "param4": {"type": "number"},
+        "param5": {"type": "number"},
+        "param6": {"type": "number"},
+        "param7": {"type": "number"}
+    },
+    "required": ["target_system", "target_component", "command", "confirmation",
+                 "param1", "param2", "param3", "param4", "param5", "param6", "param7"]
+}
+
+# COMMAND_INT schema for validation
+schema_command_int = {
+    "type": "object",
+    "properties": {
+        "target_system": {"type": "integer", "minimum": 0, "maximum": 255},
+        "target_component": {"type": "integer", "minimum": 0, "maximum": 255},
+        "frame": {"type": "integer", "minimum": 0, "maximum": 255},
+        "command": {"type": "integer", "minimum": 0, "maximum": 65535},
+        "current": {"type": "integer", "minimum": 0, "maximum": 255},
+        "autocontinue": {"type": "integer", "minimum": 0, "maximum": 255},
+        "param1": {"type": "number"},
+        "param2": {"type": "number"},
+        "param3": {"type": "number"},
+        "param4": {"type": "number"},
+        "x": {"type": "integer"},
+        "y": {"type": "integer"},
+        "z": {"type": "number"}
+    },
+    "required": ["target_system", "target_component", "frame", "command", "current", "autocontinue",
+                 "param1", "param2", "param3", "param4", "x", "y", "z"]
+}
 
 
 # get all messages
