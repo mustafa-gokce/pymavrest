@@ -130,6 +130,30 @@ curl http://127.0.0.1:2609/get/rally/0
 {"alt":100,"break_alt":40,"count":2,"flags":0,"idx":0,"land_dir":0,"lat":-353608816,"lng":1491632271,"statistics":{"average_frequency":0,"counter":1,"duration":0,"first":1660120011.4000502,"first_monotonic":6584.331569675,"instant_frequency":0,"last":1660120011.4000502,"last_monotonic":6584.331569675,"latency":0},"target_component":0,"target_system":255}
 ```
 
+#### Post `COMMAND_INT` command message to vehicle
+
+To move to a position in `GUIDED` mode using `COMMAND_INT` command message:
+
+```bash
+curl -i -X POST -H "Content-Type: application/json" -d '{"target_system": 0, "target_component":0, "frame":6, "command":192, "current":0, "autocontinue":0,"param1":1, "param2":0, "param3":0, "param4":0, "x":-353613322, "y":1491611469, "z":10}' http://127.0.0.1:2609/post/command_int
+```
+
+```json
+{"command":"COMMAND_INT","connected":true,"sent":true,"valid":true}
+```
+
+#### Post `COMMAND_LONG` command message to vehicle
+
+To arm the vehicle using `COMMAND_LONG` command message:
+
+```bash
+curl -i -X POST -H "Content-Type: application/json" -d '{"target_system": 0, "target_component":0, "command":400, "confirmation":0, "param1":1, "param2":0, "param3":0, "param4":0, "param5":0, "param6":0, "param7":0}' http://127.0.0.1:2609/post/command_long
+```
+
+```json
+{"command":"COMMAND_LONG","connected":true,"sent":true,"valid":true}
+```
+
 ### Advanced run and query
 
 ```bash
