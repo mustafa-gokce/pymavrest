@@ -90,6 +90,44 @@ class EndpointsReachableTest(unittest.TestCase):
         data = requests.get(url=link).json()
         self.assertNotEqual(data, {})
 
+    def test_post_command_long(self):
+        global IP, PORT
+        link = f"http://{IP}:{PORT}/post/command_long"
+        data = requests.post(url=link,
+                             json={"target_system": 0,
+                                   "target_component": 0,
+                                   "command": 400,
+                                   "confirmation": 0,
+                                   "param1": 1,
+                                   "param2": 0,
+                                   "param3": 0,
+                                   "param4": 0,
+                                   "param5": 0,
+                                   "param6": 0,
+                                   "param7": 0
+                                   }).json()
+        self.assertNotEqual(data, {})
+
+    def test_post_command_int(self):
+        global IP, PORT
+        link = f"http://{IP}:{PORT}/post/command_int"
+        data = requests.post(url=link,
+                             json={"target_system": 0,
+                                   "target_component": 0,
+                                   "frame": 6,
+                                   "command": 192,
+                                   "current": 0,
+                                   "autocontinue": 0,
+                                   "param1": 0,
+                                   "param2": 0,
+                                   "param3": 0,
+                                   "param4": 0,
+                                   "x": -353613322,
+                                   "y": 1491611469,
+                                   "z": 10
+                                   }).json()
+        self.assertNotEqual(data, {})
+
 
 if __name__ == '__main__':
     unittest.main()
