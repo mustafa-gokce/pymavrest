@@ -77,6 +77,19 @@ schema_command_int = {
                  "param1", "param2", "param3", "param4", "x", "y", "z"]
 }
 
+# PARAM_SET schema for validation
+schema_param_set = {
+    "type": "object",
+    "properties": {
+        "target_system": {"type": "integer", "minimum": 0, "maximum": 255},
+        "target_component": {"type": "integer", "minimum": 0, "maximum": 255},
+        "param_id": {"type": "string", "minLength": 1, "maxLength": 16},
+        "param_value": {"type": "number"},
+        "param_type": {"type": "integer", "minimum": 0, "maximum": 255}
+    },
+    "required": ["target_system", "target_component", "param_id", "param_value", "param_type"]
+}
+
 
 # get all messages
 @application.route(rule="/get/message/all", methods=["GET"])
@@ -443,6 +456,59 @@ def post_command_int():
 
         # send command message to the vehicle
         vehicle.mav.send(command_int_message)
+
+        # message sent to vehicle
+        response["sent"] = True
+
+    # message is invalid or not connected to vehicle
+    else:
+
+        # message not sent to vehicle
+        response["sent"] = False
+
+    # expose the response
+    return flask.jsonify(response)
+
+
+# post parameter set message to vehicle
+@application.route(rule="/post/param_set", methods=["POST"])
+def post_param_set():
+    # get global variables
+    global vehicle, vehicle_connected
+    global schema_param_set
+
+    # get the request
+    request = flask.request.json
+
+    # create response and add vehicle presence to response
+    response = {"command": "PARAM_SET", "connected": vehicle_connected}
+
+    # try to validate the request
+    try:
+
+        # validate the request
+        jsonschema.validate(instance=request, schema=schema_param_set)
+
+        # validation is successful
+        response["valid"] = True
+
+    # instance is invalid
+    except jsonschema.exceptions.ValidationError:
+
+        # validation is not successful
+        response["valid"] = False
+
+    # check vehicle connection and message validation
+    if response["connected"] and response["valid"]:
+        # create parameter set message
+        param_set_message = dialect.MAVLink_param_set_message(target_system=request["target_system"],
+                                                              target_component=request["target_component"],
+                                                              param_id=bytes(request["param_id"].encode("utf8")),
+                                                              param_value=request["param_value"],
+                                                              param_type=request["param_type"])
+
+        # send parameter set message to the vehicle
+        vehicle.mav.send(param_set_message)
 
         # message sent to vehicle
         response["sent"] = True

@@ -128,6 +128,18 @@ class EndpointsReachableTest(unittest.TestCase):
                                    }).json()
         self.assertNotEqual(data, {})
 
+    def test_param_set(self):
+        global IP, PORT
+        link = f"http://{IP}:{PORT}/post/param_set"
+        data = requests.post(url=link,
+                             json={"target_system": 0,
+                                   "target_component": 0,
+                                   "param_id": "SYSID_THISMAV",
+                                   "param_value": 26,
+                                   "param_type": 9
+                                   }).json()
+        self.assertNotEqual(data, {})
+
 
 if __name__ == '__main__':
     unittest.main()
