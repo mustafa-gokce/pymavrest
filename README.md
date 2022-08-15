@@ -24,7 +24,7 @@ cd pymavrest/
 curl http://127.0.0.1:2609/get/message/all
 ```
 
-Sample data can be found in the [sample.json](sample/get_message_all.json) file.
+Sample data can be found in the [get_message_all.json](sample/get_message_all.json) file.
 
 ```bash
 curl https://raw.githubusercontent.com/mustafa-gokce/pymavrest/main/sample.json
