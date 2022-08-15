@@ -154,6 +154,18 @@ curl -i -X POST -H "Content-Type: application/json" -d '{"target_system": 0, "ta
 {"command":"COMMAND_LONG","connected":true,"sent":true,"valid":true}
 ```
 
+#### Post `PARAM_SET` command message to vehicle
+
+To set `SYSID_THISMAV` parameter to `26`, using `PARAM_SET` command message:
+
+```bash
+curl -i -X POST -H "Content-Type: application/json" -d '{"target_system": 0, "target_component":0, "param_id":"SYSID_THISMAV", "param_value":26, "param_type":9}' http://127.0.0.1:2609/post/param_set
+```
+
+```json
+{"command":"PARAM_SET","connected":true,"sent":true,"valid":true}
+```
+
 ### Advanced run and query
 
 ```bash
