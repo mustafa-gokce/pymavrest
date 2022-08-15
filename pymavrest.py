@@ -9,6 +9,7 @@ import time
 import threading
 import click
 import pymavlink.mavutil as utility
+import pymavlink.dialects.v20.all as dialect
 import gevent.pywsgi
 import flask
 import jsonschema
@@ -17,6 +18,8 @@ import jsonschema
 application = flask.Flask(import_name="pymavrest")
 
 # global variables
+vehicle = None
+vehicle_connected = False
 message_data = {}
 message_enumeration = {}
 parameter_data = {}
@@ -334,6 +337,126 @@ def get_rally_with_index(rally_index):
     return flask.jsonify(result)
 
 
+# post command long message to vehicle
+@application.route(rule="/post/command_long", methods=["POST"])
+def post_command_long():
+    # get global variables
+    global vehicle, vehicle_connected
+    global schema_command_long
+
+    # get the request
+    request = flask.request.json
+
+    # create response and add vehicle presence to response
+    response = {"command": "COMMAND_LONG", "connected": vehicle_connected}
+
+    # try to validate the request
+    try:
+
+        # validate the request
+        jsonschema.validate(instance=request, schema=schema_command_long)
+
+        # validation is successful
+        response["valid"] = True
+
+    # instance is invalid
+    except jsonschema.exceptions.ValidationError:
+
+        # validation is not successful
+        response["valid"] = False
+
+    # check vehicle connection and message validation
+    if response["connected"] and response["valid"]:
+        # create command long message
+        command_long_message = dialect.MAVLink_command_long_message(target_system=request["target_system"],
+                                                                    target_component=request["target_component"],
+                                                                    command=request["command"],
+                                                                    confirmation=request["confirmation"],
+                                                                    param1=request["param1"],
+                                                                    param2=request["param2"],
+                                                                    param3=request["param3"],
+                                                                    param4=request["param4"],
+                                                                    param5=request["param5"],
+                                                                    param6=request["param6"],
+                                                                    param7=request["param7"])
+
+        # send command message to the vehicle
+        vehicle.mav.send(command_long_message)
+
+        # message sent to vehicle
+        response["sent"] = True
+
+    # message is invalid or not connected to vehicle
+    else:
+
+        # message not sent to vehicle
+        response["sent"] = False
+
+    # expose the response
+    return flask.jsonify(response)
+
+
+# post command int message to vehicle
+@application.route(rule="/post/command_int", methods=["POST"])
+def post_command_int():
+    # get global variables
+    global vehicle, vehicle_connected
+    global schema_command_int
+
+    # get the request
+    request = flask.request.json
+
+    # create response and add vehicle presence to response
+    response = {"command": "COMMAND_INT", "connected": vehicle_connected}
+
+    # try to validate the request
+    try:
+
+        # validate the request
+        jsonschema.validate(instance=request, schema=schema_command_int)
+
+        # validation is successful
+        response["valid"] = True
+
+    # instance is invalid
+    except jsonschema.exceptions.ValidationError:
+
+        # validation is not successful
+        response["valid"] = False
+
+    # check vehicle connection and message validation
+    if response["connected"] and response["valid"]:
+        # create command long message
+        command_int_message = dialect.MAVLink_command_int_message(target_system=request["target_system"],
+                                                                  target_component=request["target_component"],
+                                                                  frame=request["frame"],
+                                                                  command=request["command"],
+                                                                  current=request["current"],
+                                                                  autocontinue=request["autocontinue"],
+                                                                  param1=request["param1"],
+                                                                  param2=request["param2"],
+                                                                  param3=request["param3"],
+                                                                  param4=request["param4"],
+                                                                  x=request["x"],
+                                                                  y=request["y"],
+                                                                  z=request["z"])
+
+        # send command message to the vehicle
+        vehicle.mav.send(command_int_message)
+
+        # message sent to vehicle
+        response["sent"] = True
+
+    # message is invalid or not connected to vehicle
+    else:
+
+        # message not sent to vehicle
+        response["sent"] = False
+
+    # expose the response
+    return flask.jsonify(response)
+
+
 # deal with the malicious requests
 @application.errorhandler(code_or_exception=404)
 def page_not_found(error):
@@ -344,6 +467,7 @@ def page_not_found(error):
 # connect to vehicle and parse messages
 def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, rally):
     # get global variables
+    global vehicle, vehicle_connected
     global message_data, message_enumeration
     global parameter_data, parameter_count_total, parameter_count
     global plan_data, plan_count_total, plan_count
@@ -390,6 +514,9 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
     # infinite connection loop
     while True:
 
+        # reset connection flag
+        vehicle_connected = False
+
         # connect to vehicle
         vehicle = utility.mavlink_connection(device=master)
 
@@ -397,6 +524,9 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
         if param or plan:
             # wait until vehicle connection is assured
             vehicle.wait_heartbeat()
+
+            # set connection flag
+            vehicle_connected = True
 
         # user requested to populate parameter list
         if param:
@@ -416,7 +546,17 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
 
             # do not proceed to message parsing if no message received from vehicle within specified time
             if not message_raw:
+                # reset connection flag
+                vehicle_connected = False
+
+                # close the vehicle
+                vehicle.close()
+
+                # break the inner loop
                 break
+
+            # set connection flag
+            vehicle_connected = True
 
             # convert raw message to dictionary
             message_dict = message_raw.to_dict()
