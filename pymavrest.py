@@ -34,6 +34,7 @@ fence_count = set()
 rally_data = []
 rally_count_total = 0
 rally_count = set()
+custom_data = {}
 
 # COMMAND_LONG schema for validation
 schema_command_long = {
@@ -90,6 +91,16 @@ schema_param_set = {
     "required": ["target_system", "target_component", "param_id", "param_value", "param_type"]
 }
 
+# custom key value pair schema for validation
+schema_key_value = {
+    "type": "object",
+    "properties": {
+        "key": {"type": "string"},
+        "value": {"type": ["number", "string", "boolean", "null"]}
+    },
+    "required": ["key", "value"]
+}
+
 
 # get all messages
 @application.route(rule="/get/message/all", methods=["GET"])
@@ -111,7 +122,7 @@ def get_message_with_name(message_name):
     if message_name in message_data.keys():
 
         # expose the message
-        result = message_data[message_name]
+        result = {message_name: message_data[message_name]}
 
     # message not received yet
     else:
@@ -139,7 +150,7 @@ def get_message_with_id(message_id):
         if message_name in message_data.keys():
 
             # expose the message
-            result = message_data[message_name]
+            result = {message_name: message_data[message_name]}
 
         # message not received yet
         else:
@@ -350,6 +361,38 @@ def get_rally_with_index(rally_index):
     return flask.jsonify(result)
 
 
+# get all custom data
+@application.route(rule="/get/custom/all", methods=["GET"])
+def get_custom_all():
+    # get all custom data
+    global custom_data
+
+    # expose the response
+    return flask.jsonify(custom_data)
+
+
+# get a key value pair with key
+@application.route(rule="/get/custom/<string:key>", methods=["GET"])
+def get_key_value_pair_with_key(key):
+    # get all custom data
+    global custom_data
+
+    # check if the key exists
+    if key in custom_data.keys():
+
+        # expose the key value pair
+        result = {key: custom_data[key]}
+
+    # key does not exist
+    else:
+
+        # create empty response
+        result = {}
+
+    # expose the response
+    return flask.jsonify(result)
+
+
 # post command long message to vehicle
 @application.route(rule="/post/command_long", methods=["POST"])
 def post_command_long():
@@ -517,6 +560,52 @@ def post_param_set():
     else:
 
         # message not sent to vehicle
+        response["sent"] = False
+
+    # expose the response
+    return flask.jsonify(response)
+
+
+# post key value pair to api
+@application.route(rule="/post/custom", methods=["POST"])
+def post_key_value_pair():
+    # get global variables
+    global custom_data
+    global schema_key_value
+
+    # get the request
+    request = flask.request.json
+
+    # create response
+    response = {"command": "CUSTOM_SET"}
+
+    # try to validate the request
+    try:
+
+        # validate the request
+        jsonschema.validate(instance=request, schema=schema_key_value)
+
+        # validation is successful
+        response["valid"] = True
+
+    # instance is invalid
+    except jsonschema.exceptions.ValidationError:
+
+        # validation is not successful
+        response["valid"] = False
+
+    # check message validation
+    if response["valid"] and request["key"] != "all":
+        # create or update key value pair
+        custom_data[request["key"]] = request["value"]
+
+        # message sent to api
+        response["sent"] = True
+
+    # message is not valid
+    else:
+
+        # message did not send to api
         response["sent"] = False
 
     # expose the response

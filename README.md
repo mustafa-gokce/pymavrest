@@ -130,6 +130,24 @@ curl http://127.0.0.1:2609/get/rally/0
 {"alt":100,"break_alt":40,"count":2,"flags":0,"idx":0,"land_dir":0,"lat":-353608816,"lng":1491632271,"statistics":{"average_frequency":0,"counter":1,"duration":0,"first":1660120011.4000502,"first_monotonic":6584.331569675,"instant_frequency":0,"last":1660120011.4000502,"last_monotonic":6584.331569675,"latency":0},"target_component":0,"target_system":255}
 ```
 
+#### Get all custom key value pairs
+
+```bash
+curl http://127.0.0.1:2609/get/custom/all
+```
+
+#### Get a specific key value pair based on key
+
+```bash
+curl http://127.0.0.1:2609/get/custom/pi
+```
+
+```json
+{"pi": 3.14}
+```
+
+(after do the post)
+
 #### Post `COMMAND_INT` command message to vehicle
 
 To move to a position in `GUIDED` mode using `COMMAND_INT` command message:
@@ -164,6 +182,16 @@ curl -i -X POST -H "Content-Type: application/json" -d '{"target_system": 0, "ta
 
 ```json
 {"command":"PARAM_SET","connected":true,"sent":true,"valid":true}
+```
+
+#### Add or update a custom key value pair to API
+
+```bash
+curl -i -X POST -H "Content-Type: application/json" -d '{"key": "pi", "value": 3.14}' http://127.0.0.1:2609/post/custom
+```
+
+```json
+{"command":"CUSTOM_SET","sent":true,"valid":true}
 ```
 
 ### Advanced run and query
