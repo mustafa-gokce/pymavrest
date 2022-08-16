@@ -27,7 +27,7 @@ curl http://127.0.0.1:2609/get/message/all
 Sample data can be found in the [get_message_all.json](sample/get_message_all.json) file.
 
 ```bash
-curl https://raw.githubusercontent.com/mustafa-gokce/pymavrest/main/sample.json
+curl https://raw.githubusercontent.com/mustafa-gokce/pymavrest/main/sample/get_message_all.json
 ```
 
 #### Get a specific message by name
@@ -37,7 +37,7 @@ curl http://127.0.0.1:2609/get/message/GLOBAL_POSITION_INT
 ```
 
 ```json
-{"alt":584070,"hdg":35196,"lat":-353632620,"lon":1491652373,"relative_alt":-17,"statistics":{"average_frequency":3.992716958686398,"counter":938,"duration":234.92774712200026,"first":1658392158.7851973,"first_monotonic":6634.220171939,"instant_frequency":3.978920063475837,"last":1658392393.7129443,"last_monotonic":6869.147919061,"latency":0.25132447600026353},"time_boot_ms":2327066,"vx":1,"vy":-1,"vz":0}
+{"GLOBAL_POSITION_INT":{"alt":584070,"hdg":35319,"lat":-353632622,"lon":1491652375,"relative_alt":-17,"statistics":{"average_frequency":3.9979008611740223,"counter":33,"duration":8.00420048200067,"first":1660640937.5848908,"first_monotonic":5795.613378925,"instant_frequency":3.982114016316042,"last":1660640945.5890913,"last_monotonic":5803.617579407,"latency":0.25112289500066254},"time_boot_ms":4870833,"vx":-1,"vy":1,"vz":0}}
 ```
 
 #### Get a specific message by message id
