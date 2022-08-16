@@ -194,6 +194,16 @@ curl -i -X POST -H "Content-Type: application/json" -d '{"key": "pi", "value": 3
 {"command":"CUSTOM_SET","sent":true,"valid":true}
 ```
 
+#### Upload flight plan to vehicle
+
+```bash
+curl -i -X POST -H "Content-Type: application/json" -d '[{"target_system": 0, "target_component": 0, "seq": 1, "frame": 0, "command": 16, "current": 0, "autocontinue": 0, "param1": 0,"param2": 0,"param3": 0,"param4": 0, "x": -353606091, "y": 1491650274, "z": 784.5, "mission_type": 0}]' http://127.0.0.1:2609/post/plan
+```
+
+```json
+{"command": "MISSION_ITEM_INT", "connected": true, "sent": true, "valid": true}
+```
+
 ### Advanced run and query
 
 ```bash

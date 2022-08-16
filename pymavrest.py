@@ -35,6 +35,7 @@ rally_data = []
 rally_count_total = 0
 rally_count = set()
 custom_data = {}
+send_plan_data = []
 
 # COMMAND_LONG schema for validation
 schema_command_long = {
@@ -99,6 +100,35 @@ schema_key_value = {
         "value": {"type": ["number", "string", "boolean", "null"]}
     },
     "required": ["key", "value"]
+}
+
+# plan upload schema for validation
+schema_plan = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "target_system": {"type": "integer", "minimum": 0, "maximum": 255},
+            "target_component": {"type": "integer", "minimum": 0, "maximum": 255},
+            "seq": {"type": "integer", "minimum": 0, "maximum": 65535},
+            "frame": {"type": "integer", "minimum": 0, "maximum": 255},
+            "command": {"type": "integer", "minimum": 0, "maximum": 65535},
+            "current": {"type": "integer", "minimum": 0, "maximum": 255},
+            "autocontinue": {"type": "integer", "minimum": 0, "maximum": 255},
+            "param1": {"type": "number"},
+            "param2": {"type": "number"},
+            "param3": {"type": "number"},
+            "param4": {"type": "number"},
+            "x": {"type": "integer"},
+            "y": {"type": "integer"},
+            "z": {"type": "number"},
+            "mission_type": {"type": "integer", "minimum": 0, "maximum": 255}
+        },
+        "required": ["target_system", "target_component", "seq", "frame", "command", "current", "autocontinue",
+                     "param1", "param2", "param3", "param4", "x", "y", "z", "mission_type"]
+    },
+    "minItems": 1,
+    "maxItems": 65535
 }
 
 
@@ -404,7 +434,7 @@ def post_command_long():
     request = flask.request.json
 
     # create response and add vehicle presence to response
-    response = {"command": "COMMAND_LONG", "connected": vehicle_connected}
+    response = {"command": "COMMAND_LONG", "connected": vehicle_connected, "valid": False, "sent": False}
 
     # try to validate the request
     try:
@@ -417,9 +447,7 @@ def post_command_long():
 
     # instance is invalid
     except jsonschema.exceptions.ValidationError:
-
-        # validation is not successful
-        response["valid"] = False
+        pass
 
     # check vehicle connection and message validation
     if response["connected"] and response["valid"]:
@@ -442,12 +470,6 @@ def post_command_long():
         # message sent to vehicle
         response["sent"] = True
 
-    # message is invalid or not connected to vehicle
-    else:
-
-        # message not sent to vehicle
-        response["sent"] = False
-
     # expose the response
     return flask.jsonify(response)
 
@@ -463,7 +485,7 @@ def post_command_int():
     request = flask.request.json
 
     # create response and add vehicle presence to response
-    response = {"command": "COMMAND_INT", "connected": vehicle_connected}
+    response = {"command": "COMMAND_INT", "connected": vehicle_connected, "valid": False, "sent": False}
 
     # try to validate the request
     try:
@@ -476,9 +498,7 @@ def post_command_int():
 
     # instance is invalid
     except jsonschema.exceptions.ValidationError:
-
-        # validation is not successful
-        response["valid"] = False
+        pass
 
     # check vehicle connection and message validation
     if response["connected"] and response["valid"]:
@@ -503,12 +523,6 @@ def post_command_int():
         # message sent to vehicle
         response["sent"] = True
 
-    # message is invalid or not connected to vehicle
-    else:
-
-        # message not sent to vehicle
-        response["sent"] = False
-
     # expose the response
     return flask.jsonify(response)
 
@@ -524,7 +538,7 @@ def post_param_set():
     request = flask.request.json
 
     # create response and add vehicle presence to response
-    response = {"command": "PARAM_SET", "connected": vehicle_connected}
+    response = {"command": "PARAM_SET", "connected": vehicle_connected, "valid": False, "sent": False}
 
     # try to validate the request
     try:
@@ -537,9 +551,7 @@ def post_param_set():
 
     # instance is invalid
     except jsonschema.exceptions.ValidationError:
-
-        # validation is not successful
-        response["valid"] = False
+        pass
 
     # check vehicle connection and message validation
     if response["connected"] and response["valid"]:
@@ -556,11 +568,91 @@ def post_param_set():
         # message sent to vehicle
         response["sent"] = True
 
-    # message is invalid or not connected to vehicle
-    else:
+    # expose the response
+    return flask.jsonify(response)
 
-        # message not sent to vehicle
-        response["sent"] = False
+
+# post plan to vehicle
+@application.route(rule="/post/plan", methods=["POST"])
+def post_plan():
+    # get global variables
+    global vehicle, vehicle_connected
+    global send_plan_data, schema_plan
+
+    # get the request
+    request = flask.request.json
+
+    # create response and add vehicle presence to response
+    response = {"command": "MISSION_ITEM_INT", "connected": vehicle_connected, "valid": False, "sent": False}
+
+    # try to validate the request
+    try:
+
+        # validate the request
+        jsonschema.validate(instance=request, schema=schema_plan)
+
+        # validation is successful
+        response["valid"] = True
+
+    # instance is invalid
+    except jsonschema.exceptions.ValidationError:
+        pass
+
+    # check message validation
+    if response["valid"]:
+
+        # calculate plan length and valid indexes
+        plan_length = len(request)
+        valid_indexes = [i + 1 for i in range(plan_length)]
+
+        # get indexes inside the request
+        requested_indexes = [mission_item["seq"] for mission_item in request]
+
+        # check indexes and set validation
+        for valid_index in valid_indexes:
+            if valid_index not in requested_indexes:
+                response["valid"] = False
+                break
+
+    # check message validation
+    if response["valid"]:
+
+        # check below field values are consistent between plan items
+        for field in ["target_system", "target_component", "mission_type"]:
+            field_values = [item[field] for item in request]
+            if len(set(field_values)) != 1:
+                response["valid"] = False
+                break
+
+    # check message validation
+    if response["valid"]:
+
+        # check mission types for each item
+        for item in request:
+            if item["mission_type"] != dialect.MAV_MISSION_TYPE_MISSION:
+                response["valid"] = False
+                break
+
+    # check vehicle connection and message validation
+    if response["connected"] and response["valid"]:
+        # set outgoing plan data
+        send_plan_data = request
+
+        # get first item of the plan list
+        item = request[0]
+
+        # create MISSION_COUNT message
+        message = dialect.MAVLink_mission_write_partial_list_message(target_system=item["target_system"],
+                                                                     target_component=item["target_component"],
+                                                                     start_index=1,
+                                                                     end_index=len(request),
+                                                                     mission_type=item["mission_type"])
+
+        # send MISSION_COUNT message
+        vehicle.mav.send(message)
+
+        # message sent to vehicle
+        response["sent"] = True
 
     # expose the response
     return flask.jsonify(response)
@@ -577,7 +669,7 @@ def post_key_value_pair():
     request = flask.request.json
 
     # create response
-    response = {"command": "CUSTOM_SET"}
+    response = {"command": "CUSTOM_SET", "valid": False, "sent": False}
 
     # try to validate the request
     try:
@@ -590,23 +682,20 @@ def post_key_value_pair():
 
     # instance is invalid
     except jsonschema.exceptions.ValidationError:
+        pass
 
-        # validation is not successful
-        response["valid"] = False
+    # check key is not equal to string all
+    if response["valid"]:
+        if request["key"] == "all":
+            response["valid"] = False
 
     # check message validation
-    if response["valid"] and request["key"] != "all":
+    if response["valid"]:
         # create or update key value pair
         custom_data[request["key"]] = request["value"]
 
         # message sent to api
         response["sent"] = True
-
-    # message is not valid
-    else:
-
-        # message did not send to api
-        response["sent"] = False
 
     # expose the response
     return flask.jsonify(response)
@@ -628,6 +717,7 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
     global plan_data, plan_count_total, plan_count
     global fence_data, fence_count_total, fence_count
     global rally_data, rally_count_total, rally_count
+    global send_plan_data
 
     # zero time out means do not time out
     if timeout == 0:
@@ -776,6 +866,49 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
                 message_data[message_name]["statistics"]["duration"] = duration
                 message_data[message_name]["statistics"]["instant_frequency"] = instant_frequency
                 message_data[message_name]["statistics"]["average_frequency"] = average_frequency
+
+            # message that request a plan item
+            if message_name == "MISSION_REQUEST":
+
+                # check if this message requests a plan item
+                if message_dict["mission_type"] == dialect.MAV_MISSION_TYPE_MISSION:
+
+                    # find the plan item
+                    for item in send_plan_data:
+
+                        # found the plan item
+                        if item["seq"] == message_dict["seq"]:
+                            # do not go to next item because found it
+                            break
+
+                    # did not find the item
+                    else:
+
+                        # skip the message sent routine
+                        continue
+
+                    # create MISSION_ITEM_INT message
+                    message = dialect.MAVLink_mission_item_int_message(target_system=item["target_system"],
+                                                                       target_component=item["target_component"],
+                                                                       seq=item["seq"],
+                                                                       frame=item["frame"],
+                                                                       command=item["command"],
+                                                                       current=item["current"],
+                                                                       autocontinue=item["autocontinue"],
+                                                                       param1=item["param1"],
+                                                                       param2=item["param2"],
+                                                                       param3=item["param3"],
+                                                                       param4=item["param4"],
+                                                                       x=item["x"],
+                                                                       y=item["y"],
+                                                                       z=item["z"],
+                                                                       mission_type=item["mission_type"])
+
+                    # send MISSION_ITEM_INT message to the vehicle
+                    vehicle.mav.send(message)
+
+                # do not proceed further
+                continue
 
             # message contains a parameter value
             if message_name == "PARAM_VALUE":
