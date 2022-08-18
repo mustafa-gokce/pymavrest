@@ -1,5 +1,5 @@
 {
-  "command": "CUSTOM_SET",
+  "command": "POST_CUSTOM",
   "sent": true,
   "valid": true
 }

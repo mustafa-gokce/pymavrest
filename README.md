@@ -157,7 +157,7 @@ curl -i -X POST -H "Content-Type: application/json" -d '{"target_system": 0, "ta
 ```
 
 ```json
-{"command":"COMMAND_INT","connected":true,"sent":true,"valid":true}
+{"command":"POST_INT","connected":true,"sent":true,"valid":true}
 ```
 
 #### Post `COMMAND_LONG` command message to vehicle
@@ -169,7 +169,7 @@ curl -i -X POST -H "Content-Type: application/json" -d '{"target_system": 0, "ta
 ```
 
 ```json
-{"command":"COMMAND_LONG","connected":true,"sent":true,"valid":true}
+{"command":"POST_LONG","connected":true,"sent":true,"valid":true}
 ```
 
 #### Post `PARAM_SET` command message to vehicle
@@ -181,7 +181,7 @@ curl -i -X POST -H "Content-Type: application/json" -d '{"target_system": 0, "ta
 ```
 
 ```json
-{"command":"PARAM_SET","connected":true,"sent":true,"valid":true}
+{"command":"POST_PARAM","connected":true,"sent":true,"valid":true}
 ```
 
 #### Add or update a custom key value pair to API
@@ -191,7 +191,7 @@ curl -i -X POST -H "Content-Type: application/json" -d '{"key": "pi", "value": 3
 ```
 
 ```json
-{"command":"CUSTOM_SET","sent":true,"valid":true}
+{"command":"POST_CUSTOM","sent":true,"valid":true}
 ```
 
 #### Upload flight plan to vehicle
@@ -201,7 +201,7 @@ curl -i -X POST -H "Content-Type: application/json" -d '[{"target_system": 0, "t
 ```
 
 ```json
-{"command": "MISSION_ITEM_INT", "connected": true, "sent": true, "valid": true}
+{"command": "POST_PLAN", "connected": true, "sent": true, "valid": true}
 ```
 
 ### Advanced run and query

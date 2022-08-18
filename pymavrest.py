@@ -18,6 +18,8 @@ import jsonschema
 application = flask.Flask(import_name="pymavrest")
 
 # global variables
+white_list = set()
+black_list = set()
 vehicle = None
 vehicle_connected = False
 message_data = {}
@@ -427,14 +429,21 @@ def get_key_value_pair_with_key(key):
 @application.route(rule="/post/command_long", methods=["POST"])
 def post_command_long():
     # get global variables
+    global white_list, black_list
     global vehicle, vehicle_connected
     global schema_command_long
+
+    # adjust message white and black lists
+    messages = {"COMMAND_ACK"}
+    for message in messages:
+        white_list.add(message)
+        black_list.discard(message)
 
     # get the request
     request = flask.request.json
 
     # create response and add vehicle presence to response
-    response = {"command": "COMMAND_LONG", "connected": vehicle_connected, "valid": False, "sent": False}
+    response = {"command": "POST_LONG", "connected": vehicle_connected, "valid": False, "sent": False}
 
     # try to validate the request
     try:
@@ -475,14 +484,21 @@ def post_command_long():
 @application.route(rule="/post/command_int", methods=["POST"])
 def post_command_int():
     # get global variables
+    global white_list, black_list
     global vehicle, vehicle_connected
     global schema_command_int
+
+    # adjust message white and black lists
+    messages = {"COMMAND_ACK"}
+    for message in messages:
+        white_list.add(message)
+        black_list.discard(message)
 
     # get the request
     request = flask.request.json
 
     # create response and add vehicle presence to response
-    response = {"command": "COMMAND_INT", "connected": vehicle_connected, "valid": False, "sent": False}
+    response = {"command": "POST_INT", "connected": vehicle_connected, "valid": False, "sent": False}
 
     # try to validate the request
     try:
@@ -525,14 +541,21 @@ def post_command_int():
 @application.route(rule="/post/param_set", methods=["POST"])
 def post_param_set():
     # get global variables
+    global white_list, black_list
     global vehicle, vehicle_connected
     global schema_param_set
+
+    # adjust message white and black lists
+    messages = {"PARAM_VALUE"}
+    for message in messages:
+        white_list.add(message)
+        black_list.discard(message)
 
     # get the request
     request = flask.request.json
 
     # create response and add vehicle presence to response
-    response = {"command": "PARAM_SET", "connected": vehicle_connected, "valid": False, "sent": False}
+    response = {"command": "POST_PARAM", "connected": vehicle_connected, "valid": False, "sent": False}
 
     # try to validate the request
     try:
@@ -567,14 +590,21 @@ def post_param_set():
 @application.route(rule="/post/plan", methods=["POST"])
 def post_plan():
     # get global variables
+    global white_list, black_list
     global vehicle, vehicle_connected
     global send_plan_data, schema_plan
+
+    # adjust message white and black lists
+    messages = {"MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "MISSION_REQUEST"}
+    for message in messages:
+        white_list.add(message)
+        black_list.discard(message)
 
     # get the request
     request = flask.request.json
 
     # create response and add vehicle presence to response
-    response = {"command": "MISSION_ITEM_INT", "connected": vehicle_connected, "valid": False, "sent": False}
+    response = {"command": "POST_PLAN", "connected": vehicle_connected, "valid": False, "sent": False}
 
     # try to validate the request
     try:
@@ -654,7 +684,7 @@ def post_key_value_pair():
     request = flask.request.json
 
     # create response
-    response = {"command": "CUSTOM_SET", "valid": False, "sent": False}
+    response = {"command": "POST_CUSTOM", "valid": False, "sent": False}
 
     # try to validate the request
     try:
@@ -696,6 +726,7 @@ def page_not_found(error):
 # connect to vehicle and parse messages
 def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, rally):
     # get global variables
+    global white_list, black_list
     global vehicle, vehicle_connected
     global message_data, message_enumeration
     global parameter_data, parameter_count_total, parameter_count

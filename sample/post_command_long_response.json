@@ -1,5 +1,5 @@
 {
-  "command": "COMMAND_LONG",
+  "command": "POST_LONG",
   "connected": true,
   "sent": true,
   "valid": true

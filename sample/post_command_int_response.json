@@ -1,5 +1,5 @@
 {
-  "command": "COMMAND_INT",
+  "command": "POST_INT",
   "connected": true,
   "sent": true,
   "valid": true

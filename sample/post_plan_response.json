@@ -1,5 +1,5 @@
 {
-  "command": "MISSION_ITEM_INT",
+  "command": "POST_PLAN",
   "connected": true,
   "sent": true,
   "valid": true

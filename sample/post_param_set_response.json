@@ -1,5 +1,5 @@
 {
-  "command": "PARAM_SET",
+  "command": "POST_PARAM",
   "connected": true,
   "sent": true,
   "valid": true
