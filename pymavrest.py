@@ -713,7 +713,8 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
         drop = None
 
     # create white list set used in non-periodic parameter and flight plan related messages
-    white_list = {"PARAM_VALUE", "MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "FENCE_POINT", "RALLY_POINT"}
+    white_list = {"PARAM_VALUE", "MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "MISSION_REQUEST", "FENCE_POINT",
+                  "RALLY_POINT"}
 
     # parse white list based on user requirements
     white_list = white_list if white == "" else white_list | {x for x in white.split(",")}
@@ -729,7 +730,7 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
     # user did not request to populate flight plan items
     if not plan:
         # add flight plan related messages to black list
-        black_list |= {"MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK"}
+        black_list |= {"MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "MISSION_REQUEST"}
 
     # user did not request to populate fence
     if not fence:
