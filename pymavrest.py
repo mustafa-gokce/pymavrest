@@ -451,21 +451,18 @@ def post_command_long():
 
     # check vehicle connection and message validation
     if response["connected"] and response["valid"]:
-        # create command long message
-        command_long_message = dialect.MAVLink_command_long_message(target_system=request["target_system"],
-                                                                    target_component=request["target_component"],
-                                                                    command=request["command"],
-                                                                    confirmation=request["confirmation"],
-                                                                    param1=request["param1"],
-                                                                    param2=request["param2"],
-                                                                    param3=request["param3"],
-                                                                    param4=request["param4"],
-                                                                    param5=request["param5"],
-                                                                    param6=request["param6"],
-                                                                    param7=request["param7"])
-
         # send command message to the vehicle
-        vehicle.mav.send(command_long_message)
+        vehicle.mav.command_long_send(target_system=request["target_system"],
+                                      target_component=request["target_component"],
+                                      command=request["command"],
+                                      confirmation=request["confirmation"],
+                                      param1=request["param1"],
+                                      param2=request["param2"],
+                                      param3=request["param3"],
+                                      param4=request["param4"],
+                                      param5=request["param5"],
+                                      param6=request["param6"],
+                                      param7=request["param7"])
 
         # message sent to vehicle
         response["sent"] = True
@@ -502,23 +499,20 @@ def post_command_int():
 
     # check vehicle connection and message validation
     if response["connected"] and response["valid"]:
-        # create command long message
-        command_int_message = dialect.MAVLink_command_int_message(target_system=request["target_system"],
-                                                                  target_component=request["target_component"],
-                                                                  frame=request["frame"],
-                                                                  command=request["command"],
-                                                                  current=request["current"],
-                                                                  autocontinue=request["autocontinue"],
-                                                                  param1=request["param1"],
-                                                                  param2=request["param2"],
-                                                                  param3=request["param3"],
-                                                                  param4=request["param4"],
-                                                                  x=request["x"],
-                                                                  y=request["y"],
-                                                                  z=request["z"])
-
         # send command message to the vehicle
-        vehicle.mav.send(command_int_message)
+        vehicle.mav.command_int_send(target_system=request["target_system"],
+                                     target_component=request["target_component"],
+                                     frame=request["frame"],
+                                     command=request["command"],
+                                     current=request["current"],
+                                     autocontinue=request["autocontinue"],
+                                     param1=request["param1"],
+                                     param2=request["param2"],
+                                     param3=request["param3"],
+                                     param4=request["param4"],
+                                     x=request["x"],
+                                     y=request["y"],
+                                     z=request["z"])
 
         # message sent to vehicle
         response["sent"] = True
@@ -555,15 +549,12 @@ def post_param_set():
 
     # check vehicle connection and message validation
     if response["connected"] and response["valid"]:
-        # create parameter set message
-        param_set_message = dialect.MAVLink_param_set_message(target_system=request["target_system"],
-                                                              target_component=request["target_component"],
-                                                              param_id=bytes(request["param_id"].encode("utf8")),
-                                                              param_value=request["param_value"],
-                                                              param_type=request["param_type"])
-
         # send parameter set message to the vehicle
-        vehicle.mav.send(param_set_message)
+        vehicle.mav.param_set_send(target_system=request["target_system"],
+                                   target_component=request["target_component"],
+                                   param_id=bytes(request["param_id"].encode("utf8")),
+                                   param_value=request["param_value"],
+                                   param_type=request["param_type"])
 
         # message sent to vehicle
         response["sent"] = True
@@ -638,18 +629,12 @@ def post_plan():
         # set outgoing plan data
         send_plan_data = request
 
-        # get first item of the plan list
-        item = request[0]
-
-        # create MISSION_COUNT message
-        message = dialect.MAVLink_mission_write_partial_list_message(target_system=item["target_system"],
-                                                                     target_component=item["target_component"],
-                                                                     start_index=1,
-                                                                     end_index=len(request),
-                                                                     mission_type=item["mission_type"])
-
         # send MISSION_COUNT message
-        vehicle.mav.send(message)
+        vehicle.mav.mission_write_partial_list_send(target_system=request[0]["target_system"],
+                                                    target_component=request[0]["target_component"],
+                                                    start_index=1,
+                                                    end_index=len(request),
+                                                    mission_type=request[0]["mission_type"])
 
         # message sent to vehicle
         response["sent"] = True
@@ -887,25 +872,22 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
                         # skip the message sent routine
                         continue
 
-                    # create MISSION_ITEM_INT message
-                    message = dialect.MAVLink_mission_item_int_message(target_system=item["target_system"],
-                                                                       target_component=item["target_component"],
-                                                                       seq=item["seq"],
-                                                                       frame=item["frame"],
-                                                                       command=item["command"],
-                                                                       current=item["current"],
-                                                                       autocontinue=item["autocontinue"],
-                                                                       param1=item["param1"],
-                                                                       param2=item["param2"],
-                                                                       param3=item["param3"],
-                                                                       param4=item["param4"],
-                                                                       x=item["x"],
-                                                                       y=item["y"],
-                                                                       z=item["z"],
-                                                                       mission_type=item["mission_type"])
-
                     # send MISSION_ITEM_INT message to the vehicle
-                    vehicle.mav.send(message)
+                    vehicle.mav.mission_item_int_send(target_system=item["target_system"],
+                                                      target_component=item["target_component"],
+                                                      seq=item["seq"],
+                                                      frame=item["frame"],
+                                                      command=item["command"],
+                                                      current=item["current"],
+                                                      autocontinue=item["autocontinue"],
+                                                      param1=item["param1"],
+                                                      param2=item["param2"],
+                                                      param3=item["param3"],
+                                                      param4=item["param4"],
+                                                      x=item["x"],
+                                                      y=item["y"],
+                                                      z=item["z"],
+                                                      mission_type=item["mission_type"])
 
                 # do not proceed further
                 continue
@@ -992,15 +974,35 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
             # message means flight plan on the vehicle has changed
             if message_name == "MISSION_ACK":
 
-                # check mission plan is accepted and this acknowledgement is for flight plan
-                if message_dict["type"] == 0 and message_dict["mission_type"] == 0:
-                    # clear flight plan related variables
-                    plan_data = []
-                    plan_count = set()
-                    plan_count_total = 0
+                # this acknowledgement is for flight plan
+                if message_dict["mission_type"] == 0:
 
-                    # request total flight plan command count
-                    vehicle.mav.mission_request_list_send(vehicle.target_system, vehicle.target_component)
+                    # mission plan is accepted
+                    if message_dict["type"] == 0:
+
+                        # clear flight plan related variables
+                        plan_data = []
+                        plan_count = set()
+                        plan_count_total = 0
+
+                        # request total flight plan command count
+                        vehicle.mav.mission_request_list_send(vehicle.target_system, vehicle.target_component)
+
+                    # mission plan is not accepted so resend it
+                    else:
+
+                        # send plan data is empty
+                        if len(send_plan_data) < 1:
+                            # do not proceed further
+                            continue
+
+                        # send MISSION_COUNT message
+                        vehicle.mav.mission_write_partial_list_send(
+                            target_system=send_plan_data[0]["target_system"],
+                            target_component=send_plan_data[0]["target_component"],
+                            start_index=1,
+                            end_index=len(send_plan_data),
+                            mission_type=send_plan_data[0]["mission_type"])
 
                 # do not proceed further
                 continue
