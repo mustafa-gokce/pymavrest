@@ -1,0 +1,14 @@
+[
+  {
+    "target_system": 0,
+    "target_component": 0,
+    "idx": 0,
+    "count": 1,
+    "lat": -353606091,
+    "lng": 1491650274,
+    "alt": 100,
+    "break_alt": 40,
+    "land_dir": 0,
+    "flags": 0
+  }
+]
