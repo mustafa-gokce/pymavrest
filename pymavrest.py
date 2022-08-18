@@ -650,7 +650,7 @@ def post_plan():
         # set outgoing plan data
         send_plan_data = request
 
-        # send MISSION_COUNT message
+        # send mission write partial list message
         vehicle.mav.mission_write_partial_list_send(target_system=request[0]["target_system"],
                                                     target_component=request[0]["target_component"],
                                                     start_index=1,
@@ -1019,7 +1019,7 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
                             # do not proceed further
                             continue
 
-                        # send MISSION_COUNT message
+                        # send mission write partial list message
                         vehicle.mav.mission_write_partial_list_send(
                             target_system=send_plan_data[0]["target_system"],
                             target_component=send_plan_data[0]["target_component"],
