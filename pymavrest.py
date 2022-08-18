@@ -38,6 +38,8 @@ rally_count_total = 0
 rally_count = set()
 custom_data = {}
 send_plan_data = []
+send_fence_data = []
+send_rally_data = []
 
 # COMMAND_LONG schema for validation
 schema_command_long = {
@@ -131,6 +133,49 @@ schema_plan = {
     },
     "minItems": 1,
     "maxItems": 65535
+}
+
+# rally upload schema for validation
+schema_rally = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "target_system": {"type": "integer", "minimum": 0, "maximum": 255},
+            "target_component": {"type": "integer", "minimum": 0, "maximum": 255},
+            "idx": {"type": "integer", "minimum": 0, "maximum": 9},
+            "count": {"type": "integer", "minimum": 1, "maximum": 10},
+            "lat": {"type": "integer"},
+            "lng": {"type": "integer"},
+            "alt": {"type": "integer"},
+            "break_alt": {"type": "integer"},
+            "land_dir": {"type": "integer", "minimum": 0, "maximum": 65535},
+            "flags": {"type": "integer", "minimum": 0, "maximum": 255}
+        },
+        "required": ["target_system", "target_component", "idx", "count", "lat", "lng", "alt", "break_alt", "land_dir",
+                     "flags"]
+    },
+    "minItems": 1,
+    "maxItems": 10
+}
+
+# fence upload schema for validation
+schema_fence = {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "properties": {
+            "target_system": {"type": "integer", "minimum": 0, "maximum": 255},
+            "target_component": {"type": "integer", "minimum": 0, "maximum": 255},
+            "idx": {"type": "integer", "minimum": 0, "maximum": 255},
+            "count": {"type": "integer", "minimum": 5, "maximum": 255},
+            "lat": {"type": "number"},
+            "lng": {"type": "number"}
+        },
+        "required": ["target_system", "target_component", "idx", "count", "lat", "lng"]
+    },
+    "minItems": 5,
+    "maxItems": 256
 }
 
 
@@ -664,6 +709,241 @@ def post_plan():
     return flask.jsonify(response)
 
 
+# post rally point list to vehicle
+@application.route(rule="/post/rally", methods=["POST"])
+def post_rally():
+    # get global variables
+    global white_list, black_list
+    global vehicle, vehicle_connected
+    global send_rally_data, schema_rally
+
+    # adjust message white and black lists
+    messages = {"RALLY_POINT", "PARAM_VALUE"}
+    for message in messages:
+        white_list.add(message)
+        black_list.discard(message)
+
+    # get the request
+    request = flask.request.json
+
+    # create response and add vehicle presence to response
+    response = {"command": "POST_RALLY", "connected": vehicle_connected, "valid": False, "sent": False}
+
+    # try to validate the request
+    try:
+
+        # validate the request
+        jsonschema.validate(instance=request, schema=schema_rally)
+
+        # validation is successful
+        response["valid"] = True
+
+    # instance is invalid
+    except jsonschema.exceptions.ValidationError:
+        pass
+
+    # check message validation
+    if response["valid"]:
+
+        # calculate rally length and valid indexes
+        rally_length = len(request)
+        valid_indexes = [i for i in range(rally_length)]
+
+        # get indexes inside the request
+        requested_indexes = [rally_item["idx"] for rally_item in request]
+
+        # check indexes and set validation
+        for valid_index in valid_indexes:
+            if valid_index not in requested_indexes:
+                response["valid"] = False
+                break
+
+    # check message validation
+    if response["valid"]:
+
+        # check below field values are consistent between rally items
+        for field in ["target_system", "target_component", "count"]:
+            field_values = [item[field] for item in request]
+            if len(set(field_values)) != 1:
+                response["valid"] = False
+                break
+
+    # check message validation
+    if response["valid"]:
+
+        # check count is valid
+        rally_length = len(request)
+        for rally_item in request:
+            if rally_item["count"] != rally_length:
+                response["valid"] = False
+                break
+
+    # check vehicle connection and message validation
+    if response["connected"] and response["valid"]:
+        # set outgoing rally data
+        send_rally_data = request
+
+        # send rally item count to the vehicle
+        vehicle.mav.param_set_send(target_system=send_rally_data[0]["target_system"],
+                                   target_component=send_rally_data[0]["target_component"],
+                                   param_id=bytes("RALLY_TOTAL".encode("utf8")),
+                                   param_value=len(send_rally_data),
+                                   param_type=dialect.MAV_PARAM_TYPE_REAL32)
+
+        # for each rally point item
+        for rally_item in send_rally_data:
+            # send RALLY_POINT message to the vehicle
+            vehicle.mav.rally_point_send(target_system=rally_item["target_system"],
+                                         target_component=rally_item["target_component"],
+                                         idx=rally_item["idx"],
+                                         count=rally_item["count"],
+                                         lat=rally_item["lat"],
+                                         lng=rally_item["lng"],
+                                         alt=rally_item["alt"],
+                                         break_alt=rally_item["break_alt"],
+                                         land_dir=rally_item["land_dir"],
+                                         flags=rally_item["flags"])
+
+        # clear outgoing rally data
+        send_rally_data = []
+
+        # message sent to vehicle
+        response["sent"] = True
+
+    # expose the response
+    return flask.jsonify(response)
+
+
+# post fence point list to vehicle
+@application.route(rule="/post/fence", methods=["POST"])
+def post_fence():
+    # get global variables
+    global white_list, black_list
+    global vehicle, vehicle_connected
+    global send_fence_data, schema_fence
+    global parameter_data
+
+    # adjust message white and black lists
+    messages = {"FENCE_POINT", "PARAM_VALUE"}
+    for message in messages:
+        white_list.add(message)
+        black_list.discard(message)
+
+    # get the request
+    request = flask.request.json
+
+    # create response and add vehicle presence to response
+    response = {"command": "POST_FENCE", "connected": vehicle_connected, "valid": False, "sent": False}
+
+    # try to validate the request
+    try:
+
+        # validate the request
+        jsonschema.validate(instance=request, schema=schema_fence)
+
+        # validation is successful
+        response["valid"] = True
+
+    # instance is invalid
+    except jsonschema.exceptions.ValidationError:
+        pass
+
+    # check message validation
+    if response["valid"]:
+
+        # calculate fence length and valid indexes
+        fence_length = len(request)
+        valid_indexes = [i for i in range(fence_length)]
+
+        # get indexes inside the request
+        requested_indexes = [fence_item["idx"] for fence_item in request]
+
+        # check indexes and set validation
+        for valid_index in valid_indexes:
+            if valid_index not in requested_indexes:
+                response["valid"] = False
+                break
+
+    # check message validation
+    if response["valid"]:
+
+        # check below field values are consistent between fence items
+        for field in ["target_system", "target_component", "count"]:
+            field_values = [item[field] for item in request]
+            if len(set(field_values)) != 1:
+                response["valid"] = False
+                break
+
+    # check message validation
+    if response["valid"]:
+
+        # check count is valid
+        fence_length = len(request)
+        for fence_item in request:
+            if fence_item["count"] != fence_length:
+                response["valid"] = False
+                break
+
+    # check message validation
+    if response["valid"]:
+
+        # check fence is a polygon
+        if (request[1]["lat"], request[1]["lng"]) != (request[-1]["lat"], request[-1]["lng"]):
+            response["valid"] = False
+
+    # TODO: return point (located at 0th index) is inside the polygon
+
+    # check vehicle connection and message validation
+    if response["connected"] and response["valid"]:
+        # set outgoing fence data
+        send_fence_data = request
+
+        # TODO: check FENCE_ACTION was populated before moving on
+
+        # get fence action
+        fence_action = parameter_data["FENCE_ACTION"]["value"]
+
+        # disable fence action
+        vehicle.mav.param_set_send(target_system=send_fence_data[0]["target_system"],
+                                   target_component=send_fence_data[0]["target_component"],
+                                   param_id=bytes("FENCE_ACTION".encode("utf8")),
+                                   param_value=dialect.FENCE_ACTION_NONE,
+                                   param_type=dialect.MAV_PARAM_TYPE_REAL32)
+
+        # send fence item count to the vehicle
+        vehicle.mav.param_set_send(target_system=send_fence_data[0]["target_system"],
+                                   target_component=send_fence_data[0]["target_component"],
+                                   param_id=bytes("FENCE_TOTAL".encode("utf8")),
+                                   param_value=len(send_fence_data),
+                                   param_type=dialect.MAV_PARAM_TYPE_REAL32)
+
+        # for each fence point item
+        for fence_item in send_fence_data:
+            # send FENCE_POINT message to the vehicle
+            vehicle.mav.fence_point_send(target_system=fence_item["target_system"],
+                                         target_component=fence_item["target_component"],
+                                         idx=fence_item["idx"],
+                                         count=fence_item["count"],
+                                         lat=fence_item["lat"],
+                                         lng=fence_item["lng"])
+
+        # enable fence action
+        vehicle.mav.param_set_send(target_system=send_fence_data[0]["target_system"],
+                                   target_component=send_fence_data[0]["target_component"],
+                                   param_id=bytes("FENCE_ACTION".encode("utf8")),
+                                   param_value=fence_action,
+                                   param_type=dialect.MAV_PARAM_TYPE_REAL32)
+
+        # clear outgoing fence data
+        send_fence_data = []
+
+        # message sent to vehicle
+        response["sent"] = True
+
+    # expose the response
+    return flask.jsonify(response)
+
+
 # post key value pair to api
 @application.route(rule="/post/custom", methods=["POST"])
 def post_key_value_pair():
@@ -724,7 +1004,7 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
     global plan_data, plan_count_total, plan_count
     global fence_data, fence_count_total, fence_count
     global rally_data, rally_count_total, rally_count
-    global send_plan_data
+    global send_plan_data, send_fence_data, send_rally_data
 
     # zero time out means do not time out
     if timeout == 0:
@@ -970,6 +1250,7 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
                     fence_data = []
                     fence_count = set()
                     fence_count_total = int(message_dict["param_value"])
+                    send_fence_data = []
 
                     # request first fence item from vehicle
                     vehicle.mav.fence_fetch_point_send(vehicle.target_system, vehicle.target_component, 0)
@@ -980,6 +1261,7 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
                     rally_data = []
                     rally_count = set()
                     rally_count_total = int(message_dict["param_value"])
+                    send_rally_data = []
 
                     # request first rally item from vehicle
                     vehicle.mav.rally_fetch_point_send(vehicle.target_system, vehicle.target_component, 0)
@@ -997,35 +1279,17 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
             # message means flight plan on the vehicle has changed
             if message_name == "MISSION_ACK":
 
-                # this acknowledgement is for flight plan
-                if message_dict["mission_type"] == 0:
+                # mission plan is accepted and this acknowledgement is for flight plan
+                if message_dict["mission_type"] == dialect.MAV_MISSION_TYPE_MISSION and \
+                        message_dict["type"] == dialect.MAV_MISSION_ACCEPTED:
+                    # clear flight plan related variables
+                    plan_data = []
+                    plan_count = set()
+                    plan_count_total = 0
+                    send_plan_data = []
 
-                    # mission plan is accepted
-                    if message_dict["type"] == 0:
-
-                        # clear flight plan related variables
-                        plan_data = []
-                        plan_count = set()
-                        plan_count_total = 0
-
-                        # request total flight plan command count
-                        vehicle.mav.mission_request_list_send(vehicle.target_system, vehicle.target_component)
-
-                    # mission plan is not accepted so resend it
-                    else:
-
-                        # send plan data is empty
-                        if len(send_plan_data) < 1:
-                            # do not proceed further
-                            continue
-
-                        # send mission write partial list message
-                        vehicle.mav.mission_write_partial_list_send(
-                            target_system=send_plan_data[0]["target_system"],
-                            target_component=send_plan_data[0]["target_component"],
-                            start_index=1,
-                            end_index=len(send_plan_data),
-                            mission_type=send_plan_data[0]["mission_type"])
+                    # request total flight plan command count
+                    vehicle.mav.mission_request_list_send(vehicle.target_system, vehicle.target_component)
 
                 # do not proceed further
                 continue
