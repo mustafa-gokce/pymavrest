@@ -112,7 +112,7 @@ schema_plan = {
         "properties": {
             "target_system": {"type": "integer", "minimum": 0, "maximum": 255},
             "target_component": {"type": "integer", "minimum": 0, "maximum": 255},
-            "seq": {"type": "integer", "minimum": 0, "maximum": 65535},
+            "seq": {"type": "integer", "minimum": 1, "maximum": 65535},
             "frame": {"type": "integer", "minimum": 0, "maximum": 255},
             "command": {"type": "integer", "minimum": 0, "maximum": 65535},
             "current": {"type": "integer", "minimum": 0, "maximum": 255},
@@ -124,7 +124,7 @@ schema_plan = {
             "x": {"type": "integer"},
             "y": {"type": "integer"},
             "z": {"type": "number"},
-            "mission_type": {"type": "integer", "minimum": 0, "maximum": 255}
+            "mission_type": {"type": "integer", "minimum": 0, "maximum": 0}
         },
         "required": ["target_system", "target_component", "seq", "frame", "command", "current", "autocontinue",
                      "param1", "param2", "param3", "param4", "x", "y", "z", "mission_type"]
@@ -639,18 +639,9 @@ def post_plan():
     if response["valid"]:
 
         # check below field values are consistent between plan items
-        for field in ["target_system", "target_component", "mission_type"]:
+        for field in ["target_system", "target_component"]:
             field_values = [item[field] for item in request]
             if len(set(field_values)) != 1:
-                response["valid"] = False
-                break
-
-    # check message validation
-    if response["valid"]:
-
-        # check mission types for each item
-        for item in request:
-            if item["mission_type"] != dialect.MAV_MISSION_TYPE_MISSION:
                 response["valid"] = False
                 break
 
