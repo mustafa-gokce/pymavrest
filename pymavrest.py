@@ -506,8 +506,8 @@ def post_command_long():
     # check vehicle connection and message validation
     if response["connected"] and response["valid"]:
         # send command message to the vehicle
-        vehicle.mav.command_long_send(target_system=request["target_system"],
-                                      target_component=request["target_component"],
+        vehicle.mav.command_long_send(target_system=vehicle.target_system,
+                                      target_component=vehicle.target_component,
                                       command=request["command"],
                                       confirmation=request["confirmation"],
                                       param1=request["param1"],
@@ -561,8 +561,8 @@ def post_command_int():
     # check vehicle connection and message validation
     if response["connected"] and response["valid"]:
         # send command message to the vehicle
-        vehicle.mav.command_int_send(target_system=request["target_system"],
-                                     target_component=request["target_component"],
+        vehicle.mav.command_int_send(target_system=vehicle.target_system,
+                                     target_component=vehicle.target_component,
                                      frame=request["frame"],
                                      command=request["command"],
                                      current=request["current"],
@@ -618,8 +618,8 @@ def post_param_set():
     # check vehicle connection and message validation
     if response["connected"] and response["valid"]:
         # send parameter set message to the vehicle
-        vehicle.mav.param_set_send(target_system=request["target_system"],
-                                   target_component=request["target_component"],
+        vehicle.mav.param_set_send(target_system=vehicle.target_system,
+                                   target_component=vehicle.target_component,
                                    param_id=bytes(request["param_id"].encode("utf8")),
                                    param_value=request["param_value"],
                                    param_type=request["param_type"])
@@ -696,8 +696,8 @@ def post_plan():
         send_plan_data = request
 
         # send mission write partial list message
-        vehicle.mav.mission_write_partial_list_send(target_system=request[0]["target_system"],
-                                                    target_component=request[0]["target_component"],
+        vehicle.mav.mission_write_partial_list_send(target_system=vehicle.target_system,
+                                                    target_component=vehicle.target_component,
                                                     start_index=1,
                                                     end_index=len(request),
                                                     mission_type=request[0]["mission_type"])
@@ -784,8 +784,8 @@ def post_rally():
         send_rally_data = request
 
         # send rally item count to the vehicle
-        vehicle.mav.param_set_send(target_system=send_rally_data[0]["target_system"],
-                                   target_component=send_rally_data[0]["target_component"],
+        vehicle.mav.param_set_send(target_system=vehicle.target_system,
+                                   target_component=vehicle.target_component,
                                    param_id=bytes("RALLY_TOTAL".encode("utf8")),
                                    param_value=len(send_rally_data),
                                    param_type=dialect.MAV_PARAM_TYPE_REAL32)
@@ -793,8 +793,8 @@ def post_rally():
         # for each rally point item
         for rally_item in send_rally_data:
             # send RALLY_POINT message to the vehicle
-            vehicle.mav.rally_point_send(target_system=rally_item["target_system"],
-                                         target_component=rally_item["target_component"],
+            vehicle.mav.rally_point_send(target_system=vehicle.target_system,
+                                         target_component=vehicle.target_component,
                                          idx=rally_item["idx"],
                                          count=rally_item["count"],
                                          lat=rally_item["lat"],
@@ -904,15 +904,15 @@ def post_fence():
         fence_action = parameter_data["FENCE_ACTION"]["value"]
 
         # disable fence action
-        vehicle.mav.param_set_send(target_system=send_fence_data[0]["target_system"],
-                                   target_component=send_fence_data[0]["target_component"],
+        vehicle.mav.param_set_send(target_system=vehicle.target_system,
+                                   target_component=vehicle.target_component,
                                    param_id=bytes("FENCE_ACTION".encode("utf8")),
                                    param_value=dialect.FENCE_ACTION_NONE,
                                    param_type=dialect.MAV_PARAM_TYPE_REAL32)
 
         # send fence item count to the vehicle
-        vehicle.mav.param_set_send(target_system=send_fence_data[0]["target_system"],
-                                   target_component=send_fence_data[0]["target_component"],
+        vehicle.mav.param_set_send(target_system=vehicle.target_system,
+                                   target_component=vehicle.target_component,
                                    param_id=bytes("FENCE_TOTAL".encode("utf8")),
                                    param_value=len(send_fence_data),
                                    param_type=dialect.MAV_PARAM_TYPE_REAL32)
@@ -920,16 +920,16 @@ def post_fence():
         # for each fence point item
         for fence_item in send_fence_data:
             # send FENCE_POINT message to the vehicle
-            vehicle.mav.fence_point_send(target_system=fence_item["target_system"],
-                                         target_component=fence_item["target_component"],
+            vehicle.mav.fence_point_send(target_system=vehicle.target_system,
+                                         target_component=vehicle.target_component,
                                          idx=fence_item["idx"],
                                          count=fence_item["count"],
                                          lat=fence_item["lat"],
                                          lng=fence_item["lng"])
 
         # enable fence action
-        vehicle.mav.param_set_send(target_system=send_fence_data[0]["target_system"],
-                                   target_component=send_fence_data[0]["target_component"],
+        vehicle.mav.param_set_send(target_system=vehicle.target_system,
+                                   target_component=vehicle.target_component,
                                    param_id=bytes("FENCE_ACTION".encode("utf8")),
                                    param_value=fence_action,
                                    param_type=dialect.MAV_PARAM_TYPE_REAL32)
@@ -1176,8 +1176,8 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
                         continue
 
                     # send MISSION_ITEM_INT message to the vehicle
-                    vehicle.mav.mission_item_int_send(target_system=item["target_system"],
-                                                      target_component=item["target_component"],
+                    vehicle.mav.mission_item_int_send(target_system=vehicle.target_system,
+                                                      target_component=vehicle.target_component,
                                                       seq=item["seq"],
                                                       frame=item["frame"],
                                                       command=item["command"],
@@ -1265,6 +1265,10 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
 
                     # request first rally item from vehicle
                     vehicle.mav.rally_fetch_point_send(vehicle.target_system, vehicle.target_component, 0)
+
+                # update system id
+                elif message_dict["param_id"] == "SYSID_THISMAV":
+                    vehicle.source_system = int(message_dict["param_value"])
 
                 # do not proceed further
                 continue
