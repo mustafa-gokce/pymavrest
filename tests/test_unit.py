@@ -166,5 +166,5 @@ class EndpointsReachableTest(unittest.TestCase):
         self.assertNotEqual(data, {})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
