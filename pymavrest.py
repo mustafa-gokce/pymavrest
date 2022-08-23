@@ -114,7 +114,7 @@ schema_plan = {
         "properties": {
             "target_system": {"type": "integer", "minimum": 0, "maximum": 255},
             "target_component": {"type": "integer", "minimum": 0, "maximum": 255},
-            "seq": {"type": "integer", "minimum": 1, "maximum": 65535},
+            "seq": {"type": "integer", "minimum": 0, "maximum": 65535},
             "frame": {"type": "integer", "minimum": 0, "maximum": 255},
             "command": {"type": "integer", "minimum": 0, "maximum": 65535},
             "current": {"type": "integer", "minimum": 0, "maximum": 255},
@@ -478,14 +478,14 @@ def post_command_long():
     global vehicle, vehicle_connected
     global schema_command_long
 
+    # get the request
+    request = flask.request.json
+
     # adjust message white and black lists
     messages = {"COMMAND_ACK"}
     for message in messages:
         white_list.add(message)
         black_list.discard(message)
-
-    # get the request
-    request = flask.request.json
 
     # create response and add vehicle presence to response
     response = {"command": "POST_LONG", "connected": vehicle_connected, "valid": False, "sent": False}
@@ -533,14 +533,14 @@ def post_command_int():
     global vehicle, vehicle_connected
     global schema_command_int
 
+    # get the request
+    request = flask.request.json
+
     # adjust message white and black lists
     messages = {"COMMAND_ACK"}
     for message in messages:
         white_list.add(message)
         black_list.discard(message)
-
-    # get the request
-    request = flask.request.json
 
     # create response and add vehicle presence to response
     response = {"command": "POST_INT", "connected": vehicle_connected, "valid": False, "sent": False}
@@ -590,14 +590,14 @@ def post_param_set():
     global vehicle, vehicle_connected
     global schema_param_set
 
+    # get the request
+    request = flask.request.json
+
     # adjust message white and black lists
     messages = {"PARAM_VALUE"}
     for message in messages:
         white_list.add(message)
         black_list.discard(message)
-
-    # get the request
-    request = flask.request.json
 
     # create response and add vehicle presence to response
     response = {"command": "POST_PARAM", "connected": vehicle_connected, "valid": False, "sent": False}
@@ -639,14 +639,14 @@ def post_plan():
     global vehicle, vehicle_connected
     global send_plan_data, schema_plan
 
+    # get the request
+    request = flask.request.json
+
     # adjust message white and black lists
     messages = {"MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "MISSION_REQUEST"}
     for message in messages:
         white_list.add(message)
         black_list.discard(message)
-
-    # get the request
-    request = flask.request.json
 
     # create response and add vehicle presence to response
     response = {"command": "POST_PLAN", "connected": vehicle_connected, "valid": False, "sent": False}
@@ -669,7 +669,7 @@ def post_plan():
 
         # calculate plan length and valid indexes
         plan_length = len(request)
-        valid_indexes = [i + 1 for i in range(plan_length)]
+        valid_indexes = [i for i in range(plan_length)]
 
         # get indexes inside the request
         requested_indexes = [mission_item["seq"] for mission_item in request]
@@ -696,11 +696,10 @@ def post_plan():
         send_plan_data = request
 
         # send mission write partial list message
-        vehicle.mav.mission_write_partial_list_send(target_system=vehicle.target_system,
-                                                    target_component=vehicle.target_component,
-                                                    start_index=1,
-                                                    end_index=len(request),
-                                                    mission_type=request[0]["mission_type"])
+        vehicle.mav.mission_count_send(target_system=vehicle.target_system,
+                                       target_component=vehicle.target_component,
+                                       count=len(request),
+                                       mission_type=dialect.MAV_MISSION_TYPE_MISSION)
 
         # message sent to vehicle
         response["sent"] = True
@@ -717,14 +716,14 @@ def post_rally():
     global vehicle, vehicle_connected
     global send_rally_data, schema_rally
 
+    # get the request
+    request = flask.request.json
+
     # adjust message white and black lists
     messages = {"RALLY_POINT", "PARAM_VALUE"}
     for message in messages:
         white_list.add(message)
         black_list.discard(message)
-
-    # get the request
-    request = flask.request.json
 
     # create response and add vehicle presence to response
     response = {"command": "POST_RALLY", "connected": vehicle_connected, "valid": False, "sent": False}
@@ -823,14 +822,21 @@ def post_fence():
     global send_fence_data, schema_fence
     global parameter_data
 
+    # get the request
+    request = flask.request.json
+
     # adjust message white and black lists
     messages = {"FENCE_POINT", "PARAM_VALUE"}
     for message in messages:
         white_list.add(message)
         black_list.discard(message)
 
-    # get the request
-    request = flask.request.json
+    # request fence action parameter if not exits
+    if "FENCE_ACTION" not in parameter_data.keys():
+        vehicle.mav.param_request_read_send(target_system=vehicle.target_system,
+                                            target_component=vehicle.target_component,
+                                            param_id=bytes("FENCE_ACTION".encode("utf8")),
+                                            param_index=0)
 
     # create response and add vehicle presence to response
     response = {"command": "POST_FENCE", "connected": vehicle_connected, "valid": False, "sent": False}
@@ -891,14 +897,13 @@ def post_fence():
         if (request[1]["lat"], request[1]["lng"]) != (request[-1]["lat"], request[-1]["lng"]):
             response["valid"] = False
 
-    # TODO: return point (located at 0th index) is inside the polygon
+    # check fence action parameter exits
+    response["connected"] = "FENCE_ACTION" in parameter_data.keys()
 
     # check vehicle connection and message validation
     if response["connected"] and response["valid"]:
         # set outgoing fence data
         send_fence_data = request
-
-        # TODO: check FENCE_ACTION was populated before moving on
 
         # get fence action
         fence_action = parameter_data["FENCE_ACTION"]["value"]
@@ -1190,7 +1195,7 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
                                                       x=item["x"],
                                                       y=item["y"],
                                                       z=item["z"],
-                                                      mission_type=item["mission_type"])
+                                                      mission_type=dialect.MAV_MISSION_TYPE_MISSION)
 
                 # do not proceed further
                 continue
