@@ -1,5 +1,6 @@
 import unittest
 import requests
+import json
 
 IP = "127.0.0.1"
 PORT = 2609
@@ -93,77 +94,26 @@ class EndpointsReachableTest(unittest.TestCase):
     def test_post_command_long(self):
         global IP, PORT
         link = f"http://{IP}:{PORT}/post/command_long"
-        data = requests.post(url=link,
-                             json={"target_system": 0,
-                                   "target_component": 0,
-                                   "command": 400,
-                                   "confirmation": 0,
-                                   "param1": 1,
-                                   "param2": 0,
-                                   "param3": 0,
-                                   "param4": 0,
-                                   "param5": 0,
-                                   "param6": 0,
-                                   "param7": 0
-                                   }).json()
-        self.assertNotEqual(data, {})
+        data = requests.post(url=link, json=json.load(open("../samples/post_command_long.json")))
+        self.assertEqual(data.json(), json.load(open("../samples/post_command_long_response.json")))
 
     def test_post_command_int(self):
         global IP, PORT
         link = f"http://{IP}:{PORT}/post/command_int"
-        data = requests.post(url=link,
-                             json={"target_system": 0,
-                                   "target_component": 0,
-                                   "frame": 6,
-                                   "command": 192,
-                                   "current": 0,
-                                   "autocontinue": 0,
-                                   "param1": 0,
-                                   "param2": 0,
-                                   "param3": 0,
-                                   "param4": 0,
-                                   "x": -353613322,
-                                   "y": 1491611469,
-                                   "z": 10
-                                   }).json()
-        self.assertNotEqual(data, {})
+        data = requests.post(url=link, json=json.load(open("../samples/post_command_int.json")))
+        self.assertEqual(data.json(), json.load(open("../samples/post_command_int_response.json")))
 
     def test_post_param_set(self):
         global IP, PORT
         link = f"http://{IP}:{PORT}/post/param_set"
-        data = requests.post(url=link,
-                             json={"target_system": 0,
-                                   "target_component": 0,
-                                   "param_id": "SYSID_THISMAV",
-                                   "param_value": 26,
-                                   "param_type": 9
-                                   }).json()
-        self.assertNotEqual(data, {})
+        data = requests.post(url=link, json=json.load(open("../samples/post_param_set.json")))
+        self.assertEqual(data.json(), json.load(open("../samples/post_param_set_response.json")))
 
     def test_post_plan(self):
         global IP, PORT
         link = f"http://{IP}:{PORT}/post/plan"
-        data = requests.post(url=link,
-                             json=[
-                                 {
-                                     "target_system": 0,
-                                     "target_component": 0,
-                                     "seq": 1,
-                                     "frame": 0,
-                                     "command": 16,
-                                     "current": 0,
-                                     "autocontinue": 0,
-                                     "param1": 0,
-                                     "param2": 0,
-                                     "param3": 0,
-                                     "param4": 0,
-                                     "x": -353606091,
-                                     "y": 1491650274,
-                                     "z": 784.5,
-                                     "mission_type": 0
-                                 }
-                             ]).json()
-        self.assertNotEqual(data, {})
+        data = requests.post(url=link, json=json.load(open("../samples/post_plan.json")))
+        self.assertEqual(data.json(), json.load(open("../samples/post_plan_response.json")))
 
 
 if __name__ == "__main__":
