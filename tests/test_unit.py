@@ -91,6 +91,12 @@ class EndpointsReachableTest(unittest.TestCase):
         data = requests.get(url=link).json()
         self.assertNotEqual(data, {})
 
+    def test_get_statistics(self):
+        global IP, PORT
+        link = f"http://{IP}:{PORT}/get/statistics"
+        data = requests.get(url=link).json()
+        self.assertNotEqual(data, {})
+
     def test_post_command_long(self):
         global IP, PORT
         link = f"http://{IP}:{PORT}/post/command_long"

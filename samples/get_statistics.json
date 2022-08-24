@@ -1,0 +1,28 @@
+{
+  "api": {
+    "statistics": {
+      "average_frequency": 0.3857063030400946,
+      "counter": 119,
+      "duration": 308.52490369500083,
+      "first": 1661338992.8301845,
+      "first_monotonic": 16294.305472133,
+      "instant_frequency": 0.008128899417259904,
+      "last": 1661339301.3550882,
+      "last_monotonic": 16602.830375828,
+      "latency": 123.01788331600255
+    }
+  },
+  "vehicle": {
+    "statistics": {
+      "average_frequency": 109.54041660187012,
+      "counter": 33759,
+      "duration": 308.18761738599824,
+      "first": 1661338993.145153,
+      "first_monotonic": 16294.62044054,
+      "instant_frequency": 3076.544455364997,
+      "last": 1661339301.3327703,
+      "last_monotonic": 16602.808057926,
+      "latency": 0.0003250399968237616
+    }
+  }
+}
