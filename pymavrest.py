@@ -695,6 +695,11 @@ def post_plan():
         # set outgoing plan data
         send_plan_data = request
 
+        # send mission clear all message
+        vehicle.mav.mission_clear_all_send(target_system=vehicle.target_system,
+                                           target_component=vehicle.target_component,
+                                           mission_type=dialect.MAV_MISSION_TYPE_MISSION)
+
         # send mission write partial list message
         vehicle.mav.mission_count_send(target_system=vehicle.target_system,
                                        target_component=vehicle.target_component,
@@ -782,6 +787,13 @@ def post_rally():
         # set outgoing rally data
         send_rally_data = request
 
+        # send clear rally item count to the vehicle
+        vehicle.mav.param_set_send(target_system=vehicle.target_system,
+                                   target_component=vehicle.target_component,
+                                   param_id=bytes("RALLY_TOTAL".encode("utf8")),
+                                   param_value=0,
+                                   param_type=dialect.MAV_PARAM_TYPE_REAL32)
+
         # send rally item count to the vehicle
         vehicle.mav.param_set_send(target_system=vehicle.target_system,
                                    target_component=vehicle.target_component,
@@ -802,9 +814,6 @@ def post_rally():
                                          break_alt=rally_item["break_alt"],
                                          land_dir=rally_item["land_dir"],
                                          flags=rally_item["flags"])
-
-        # clear outgoing rally data
-        send_rally_data = []
 
         # message sent to vehicle
         response["sent"] = True
@@ -915,6 +924,13 @@ def post_fence():
                                    param_value=dialect.FENCE_ACTION_NONE,
                                    param_type=dialect.MAV_PARAM_TYPE_REAL32)
 
+        # send clear fence item count to the vehicle
+        vehicle.mav.param_set_send(target_system=vehicle.target_system,
+                                   target_component=vehicle.target_component,
+                                   param_id=bytes("FENCE_TOTAL".encode("utf8")),
+                                   param_value=0,
+                                   param_type=dialect.MAV_PARAM_TYPE_REAL32)
+
         # send fence item count to the vehicle
         vehicle.mav.param_set_send(target_system=vehicle.target_system,
                                    target_component=vehicle.target_component,
@@ -938,9 +954,6 @@ def post_fence():
                                    param_id=bytes("FENCE_ACTION".encode("utf8")),
                                    param_value=fence_action,
                                    param_type=dialect.MAV_PARAM_TYPE_REAL32)
-
-        # clear outgoing fence data
-        send_fence_data = []
 
         # message sent to vehicle
         response["sent"] = True
@@ -1255,7 +1268,6 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
                     fence_data = []
                     fence_count = set()
                     fence_count_total = int(message_dict["param_value"])
-                    send_fence_data = []
 
                     # request first fence item from vehicle
                     vehicle.mav.fence_fetch_point_send(vehicle.target_system, vehicle.target_component, 0)
@@ -1266,7 +1278,6 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
                     rally_data = []
                     rally_count = set()
                     rally_count_total = int(message_dict["param_value"])
-                    send_rally_data = []
 
                     # request first rally item from vehicle
                     vehicle.mav.rally_fetch_point_send(vehicle.target_system, vehicle.target_component, 0)
@@ -1295,7 +1306,6 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
                     plan_data = []
                     plan_count = set()
                     plan_count_total = 0
-                    send_plan_data = []
 
                     # request total flight plan command count
                     vehicle.mav.mission_request_list_send(vehicle.target_system, vehicle.target_component)
