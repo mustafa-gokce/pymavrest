@@ -115,6 +115,18 @@ class EndpointsReachableTest(unittest.TestCase):
         data = requests.post(url=link, json=json.load(open("../samples/post_plan.json")))
         self.assertEqual(data.json(), json.load(open("../samples/post_plan_response.json")))
 
+    def test_post_rally(self):
+        global IP, PORT
+        link = f"http://{IP}:{PORT}/post/rally"
+        data = requests.post(url=link, json=json.load(open("../samples/post_rally.json")))
+        self.assertEqual(data.json(), json.load(open("../samples/post_rally_response.json")))
+
+    def test_post_fence(self):
+        global IP, PORT
+        link = f"http://{IP}:{PORT}/post/fence"
+        data = requests.post(url=link, json=json.load(open("../samples/post_fence.json")))
+        self.assertEqual(data.json(), json.load(open("../samples/post_fence_response.json")))
+
 
 if __name__ == "__main__":
     unittest.main()
