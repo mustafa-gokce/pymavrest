@@ -1209,6 +1209,10 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
             if len(white) > 1 and message_name not in white_list:
                 continue
 
+            # discard bad data
+            if message_name == "BAD_DATA":
+                continue
+
             # create a message field in message data if this ordinary message not populated before
             if message_name not in message_data.keys():
                 message_data[message_name] = {}
