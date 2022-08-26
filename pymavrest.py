@@ -1061,7 +1061,7 @@ def page_not_found(error):
 
 
 # connect to vehicle and parse messages
-def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, rally):
+def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fence, rally):
     # get global variables
     global white_list, black_list
     global vehicle, vehicle_connected
@@ -1120,13 +1120,22 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
         # connect to vehicle
         vehicle = utility.mavlink_connection(device=master)
 
-        # user requested to populate parameter list or flight plan
-        if param or plan:
+        # user requested to populate parameter list, flight plan or message streams
+        if param or plan or rate > 0:
             # wait until vehicle connection is assured
             vehicle.wait_heartbeat()
 
             # set connection flag
             vehicle_connected = True
+
+        # user requested all the available streams from vehicle
+        if rate > 0:
+            # request all available streams from vehicle
+            vehicle.mav.request_data_stream_send(target_system=vehicle.target_system,
+                                                 target_component=vehicle.target_component,
+                                                 req_stream_id=dialect.MAV_DATA_STREAM_ALL,
+                                                 req_message_rate=rate,
+                                                 start_stop=1)
 
         # user requested to populate parameter list
         if param:
@@ -1550,6 +1559,8 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
               help="Try to reconnect after this seconds when no message is received, zero means do not reconnect")
 @click.option("--drop", default=5.0, type=click.FloatRange(min=0, clamp=True), required=False,
               help="Drop non-periodic messages after this seconds, zero means do not drop.")
+@click.option("--rate", default=4, type=click.IntRange(min=0, clamp=True), required=False,
+              help="Message stream that will be requested from vehicle, zero means do not request.")
 @click.option("--white", default="", type=click.STRING, required=False,
               help="Comma separated white list to filter messages, empty means all messages are in white list.")
 @click.option("--black", default="", type=click.STRING, required=False,
@@ -1562,9 +1573,9 @@ def receive_telemetry(master, timeout, drop, white, black, param, plan, fence, r
               help="Fetch fence.")
 @click.option("--rally", default=True, type=click.BOOL, required=False,
               help="Fetch rally.")
-def main(host, port, master, timeout, drop, white, black, param, plan, fence, rally):
+def main(host, port, master, timeout, drop, rate, white, black, param, plan, fence, rally):
     # start telemetry receiver thread
-    threading.Thread(target=receive_telemetry, args=(master, timeout, drop, white, black,
+    threading.Thread(target=receive_telemetry, args=(master, timeout, drop, rate, white, black,
                                                      param, plan, fence, rally)).start()
 
     # create server
@@ -1576,7 +1587,6 @@ def main(host, port, master, timeout, drop, white, black, param, plan, fence, ra
 
 # main entry point
 if __name__ == "__main__":
-
     # set statistics data
     with application.app_context():
         get_statistics()
