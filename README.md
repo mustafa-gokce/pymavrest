@@ -1,5 +1,34 @@
 # Pymavrest
 
+Python RESTful API for MAVLink enabled vehicles
+
+## Features
+
+* Get all messages from vehicle
+* Get a specific message by it's name or ID
+* Get a specific message field with field name by message name or ID
+* Get all parameters from vehicle
+* Get a specific parameter by it's name
+* Get all mission items on vehicle
+* Get a specific mission item on vehicle by it's ID
+* Get all fence items on vehicle
+* Get a specific fence item on vehicle by it's ID
+* Get all rally items on vehicle
+* Get a specific rally item on vehicle by it's ID
+* Get statistics of API and vehicle connection
+* Get and set custom key/value pairs
+* Send COMMAND_LONG messages to vehicle
+* Send COMMAND_INT messages to vehicle
+* Send parameter send command to vehicle
+* Send mission item list to vehicle
+* Send fence item list to vehicle
+* Send rally item list to vehicle
+* Reconnect to vehicle if not received a message within a timeout
+* Drop non-periodic messages after a desired timeout
+* Set message stream rate
+* Message whitelist/blacklist support
+* Fetch parameters and plan, fence and rally items at start
+
 ## Installation
 
 ```bash
