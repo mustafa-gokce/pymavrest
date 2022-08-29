@@ -13,9 +13,13 @@ import pymavlink.dialects.v20.all as dialect
 import gevent.pywsgi
 import flask
 import jsonschema
+import flask_cors
 
 # create a flask application
 application = flask.Flask(import_name="pymavrest")
+
+# enable CORS
+flask_cors.CORS(app=application)
 
 # global variables
 white_list = set()
