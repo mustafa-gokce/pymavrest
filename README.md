@@ -439,7 +439,7 @@ curl -i -X POST -H "Content-Type: application/json" -d '[ { "target_system": 0, 
 ### Advanced run and query
 
 ```bash
-/usr/bin/python3 pymavrest.py --host="127.0.0.1" --port=2609 --master="udpin:127.0.0.1:14550" --timeout=5.0 --drop=5.0 --rate=4 --white="GLOBAL_POSITION_INT,ATTITUDE,VFR_HUD" --black="VFR_HUD" --param=True --plan=True --fence=True --rally=True --reset=True --custom='{"pi": 3.14}'
+/usr/bin/python3 pymavrest.py --host="127.0.0.1" --port=2609 --master="udpin:127.0.0.1:14550" --timeout=5.0 --drop=5.0 --rate=4 --white="GLOBAL_POSITION_INT,ATTITUDE,VFR_HUD" --black="VFR_HUD" --param=True --plan=True --fence=True --rally=True --reset=True --custom='{"pi": 3.14}' --request='{"245": 5}'
 ```
 
 ```bash
@@ -511,3 +511,4 @@ curl http://127.0.0.1:2609/get/message/all
 | rally    | bool  | True                    | Fetch rally                                                                                  |
 | reset    | bool  | False                   | Reset on-board vehicle statistics on start                                                   |
 | custom   | str   | ""                      | User-defined custom key-value pairs                                                          |
+| request  | str   | ""                      | Request non-default message streams with frequency                                           |

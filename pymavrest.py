@@ -1066,7 +1066,7 @@ def page_not_found(error):
 
 
 # connect to vehicle and parse messages
-def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fence, rally, reset):
+def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fence, rally, reset, request):
     # get global variables
     global white_list, black_list
     global vehicle, vehicle_connected
@@ -1125,8 +1125,8 @@ def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fe
         # connect to vehicle
         vehicle = utility.mavlink_connection(device=master)
 
-        # user requested to populate parameter list, flight plan or message streams or reset statistics of vehicle
-        if param or plan or rate > 0 or reset:
+        # need to get heartbeat
+        if param or plan or rate > 0 or reset or request != {}:
             # wait until vehicle connection is assured
             vehicle.wait_heartbeat()
 
@@ -1150,6 +1150,28 @@ def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fe
                                                  req_stream_id=dialect.MAV_DATA_STREAM_ALL,
                                                  req_message_rate=rate,
                                                  start_stop=1)
+
+        # user requested custom streams from vehicle
+        if request != {}:
+
+            # for each requested stream
+            for stream in request.keys():
+                # get stream number and interval
+                message_id = int(stream)
+                message_interval = int((1.0 / float(request[stream])) * 1e6)
+
+                # request the custom stream from vehicle
+                vehicle.mav.command_long_send(target_system=vehicle.target_system,
+                                              target_component=vehicle.target_component,
+                                              command=dialect.MAV_CMD_SET_MESSAGE_INTERVAL,
+                                              confirmation=0,
+                                              param1=message_id,
+                                              param2=message_interval,
+                                              param3=0,
+                                              param4=0,
+                                              param5=0,
+                                              param6=0,
+                                              param7=0)
 
         # user requested to populate parameter list
         if param:
@@ -1591,7 +1613,9 @@ def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fe
               help="Reset statistics on start.")
 @click.option("--custom", default="", type=click.STRING, required=False,
               help="User-defined custom key-value pairs.")
-def main(host, port, master, timeout, drop, rate, white, black, param, plan, fence, rally, reset, custom):
+@click.option("--request", default="", type=click.STRING, required=False,
+              help="Request non-default message streams with frequency.")
+def main(host, port, master, timeout, drop, rate, white, black, param, plan, fence, rally, reset, custom, request):
     # get global variables
     global custom_data
 
@@ -1599,10 +1623,21 @@ def main(host, port, master, timeout, drop, rate, white, black, param, plan, fen
     if custom != "":
         # parse custom argument and set custom data
         custom_data = json.loads(s=custom)
+    else:
+        # create empty custom data
+        custom_data = {}
+
+    # check user requested non-default message streams
+    if request != "":
+        # parse request to dictionary
+        request = json.loads(s=request)
+    else:
+        # create empty request dictionary
+        request = {}
 
     # start telemetry receiver thread
     threading.Thread(target=receive_telemetry, args=(master, timeout, drop, rate, white, black,
-                                                     param, plan, fence, rally, reset)).start()
+                                                     param, plan, fence, rally, reset, request)).start()
 
     # create server
     server = gevent.pywsgi.WSGIServer(listener=(host, port), application=application, log=application.logger)
