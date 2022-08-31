@@ -12,6 +12,7 @@ import pymavlink.mavutil as utility
 import pymavlink.dialects.v20.all as dialect
 import gevent.pywsgi
 import flask
+import json
 import jsonschema
 import flask_cors
 
@@ -1588,7 +1589,17 @@ def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fe
               help="Fetch rally.")
 @click.option("--reset", default=False, type=click.BOOL, required=False,
               help="Reset statistics on start.")
-def main(host, port, master, timeout, drop, rate, white, black, param, plan, fence, rally, reset):
+@click.option("--custom", default="", type=click.STRING, required=False,
+              help="User-defined custom key-value pairs.")
+def main(host, port, master, timeout, drop, rate, white, black, param, plan, fence, rally, reset, custom):
+    # get global variables
+    global custom_data
+
+    # check user defined some key value pairs
+    if custom != "":
+        # parse custom argument and set custom data
+        custom_data = json.loads(s=custom)
+
     # start telemetry receiver thread
     threading.Thread(target=receive_telemetry, args=(master, timeout, drop, rate, white, black,
                                                      param, plan, fence, rally, reset)).start()
