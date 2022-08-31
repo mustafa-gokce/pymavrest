@@ -1065,7 +1065,7 @@ def page_not_found(error):
 
 
 # connect to vehicle and parse messages
-def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fence, rally):
+def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fence, rally, reset):
     # get global variables
     global white_list, black_list
     global vehicle, vehicle_connected
@@ -1124,13 +1124,22 @@ def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fe
         # connect to vehicle
         vehicle = utility.mavlink_connection(device=master)
 
-        # user requested to populate parameter list, flight plan or message streams
-        if param or plan or rate > 0:
+        # user requested to populate parameter list, flight plan or message streams or reset statistics of vehicle
+        if param or plan or rate > 0 or reset:
             # wait until vehicle connection is assured
             vehicle.wait_heartbeat()
 
             # set connection flag
             vehicle_connected = True
+
+        # user requested to reset on-board statistics of vehicle
+        if reset:
+            # send parameter set message to the vehicle
+            vehicle.mav.param_set_send(target_system=vehicle.target_system,
+                                       target_component=vehicle.target_component,
+                                       param_id=bytes("STAT_RESET".encode("utf8")),
+                                       param_value=0,
+                                       param_type=dialect.MAV_PARAM_TYPE_REAL32)
 
         # user requested all the available streams from vehicle
         if rate > 0:
@@ -1577,10 +1586,12 @@ def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fe
               help="Fetch fence.")
 @click.option("--rally", default=True, type=click.BOOL, required=False,
               help="Fetch rally.")
-def main(host, port, master, timeout, drop, rate, white, black, param, plan, fence, rally):
+@click.option("--reset", default=False, type=click.BOOL, required=False,
+              help="Reset statistics on start.")
+def main(host, port, master, timeout, drop, rate, white, black, param, plan, fence, rally, reset):
     # start telemetry receiver thread
     threading.Thread(target=receive_telemetry, args=(master, timeout, drop, rate, white, black,
-                                                     param, plan, fence, rally)).start()
+                                                     param, plan, fence, rally, reset)).start()
 
     # create server
     server = gevent.pywsgi.WSGIServer(listener=(host, port), application=application, log=application.logger)
