@@ -1258,6 +1258,10 @@ def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fe
             if message_name == "BAD_DATA":
                 continue
 
+            # discard unknown messages
+            if message_name.startswith("UNKNOWN"):
+                continue
+
             # create a message field in message data if this ordinary message not populated before
             if message_name not in message_data.keys():
                 message_data[message_name] = {}
