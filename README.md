@@ -28,6 +28,9 @@ Python RESTful API for MAVLink enabled vehicles
 * Set message stream rate
 * Message whitelist/blacklist support
 * Fetch parameters and plan, fence and rally items at start
+* Reset on-board vehicle statistics on start
+* Initialize custom key-value pair endpoint at start
+* Request non-default message streams at start
 
 ## Installation
 
