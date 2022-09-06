@@ -23,8 +23,10 @@ application = flask.Flask(import_name="pymavrest")
 flask_cors.CORS(app=application)
 
 # global variables
-white_list = set()
-black_list = set()
+message_white_list = set()
+message_black_list = set()
+parameter_white_list = set()
+parameter_black_list = set()
 vehicle = None
 vehicle_connected = False
 message_data = {}
@@ -527,7 +529,7 @@ def get_key_value_pair_with_key(key):
 @application.route(rule="/post/command_long", methods=["POST"])
 def post_command_long():
     # get global variables
-    global white_list, black_list
+    global message_white_list, message_black_list
     global vehicle, vehicle_connected
     global schema_command_long
 
@@ -537,8 +539,8 @@ def post_command_long():
     # adjust message white and black lists
     messages = {"COMMAND_ACK"}
     for message in messages:
-        white_list.add(message)
-        black_list.discard(message)
+        message_white_list.add(message)
+        message_black_list.discard(message)
 
     # create response and add vehicle presence to response
     response = {"command": "POST_LONG", "connected": vehicle_connected, "valid": False, "sent": False}
@@ -582,7 +584,7 @@ def post_command_long():
 @application.route(rule="/post/command_int", methods=["POST"])
 def post_command_int():
     # get global variables
-    global white_list, black_list
+    global message_white_list, message_black_list
     global vehicle, vehicle_connected
     global schema_command_int
 
@@ -592,8 +594,8 @@ def post_command_int():
     # adjust message white and black lists
     messages = {"COMMAND_ACK"}
     for message in messages:
-        white_list.add(message)
-        black_list.discard(message)
+        message_white_list.add(message)
+        message_black_list.discard(message)
 
     # create response and add vehicle presence to response
     response = {"command": "POST_INT", "connected": vehicle_connected, "valid": False, "sent": False}
@@ -639,7 +641,7 @@ def post_command_int():
 @application.route(rule="/post/param_set", methods=["POST"])
 def post_param_set():
     # get global variables
-    global white_list, black_list
+    global message_white_list, message_black_list
     global vehicle, vehicle_connected
     global schema_param_set
 
@@ -649,8 +651,8 @@ def post_param_set():
     # adjust message white and black lists
     messages = {"PARAM_VALUE"}
     for message in messages:
-        white_list.add(message)
-        black_list.discard(message)
+        message_white_list.add(message)
+        message_black_list.discard(message)
 
     # create response and add vehicle presence to response
     response = {"command": "POST_PARAM", "connected": vehicle_connected, "valid": False, "sent": False}
@@ -688,7 +690,7 @@ def post_param_set():
 @application.route(rule="/post/plan", methods=["POST"])
 def post_plan():
     # get global variables
-    global white_list, black_list
+    global message_white_list, message_black_list
     global vehicle, vehicle_connected
     global send_plan_data, schema_plan
 
@@ -698,8 +700,8 @@ def post_plan():
     # adjust message white and black lists
     messages = {"MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "MISSION_REQUEST"}
     for message in messages:
-        white_list.add(message)
-        black_list.discard(message)
+        message_white_list.add(message)
+        message_black_list.discard(message)
 
     # create response and add vehicle presence to response
     response = {"command": "POST_PLAN", "connected": vehicle_connected, "valid": False, "sent": False}
@@ -770,7 +772,7 @@ def post_plan():
 @application.route(rule="/post/rally", methods=["POST"])
 def post_rally():
     # get global variables
-    global white_list, black_list
+    global message_white_list, message_black_list
     global vehicle, vehicle_connected
     global send_rally_data, schema_rally
 
@@ -780,8 +782,8 @@ def post_rally():
     # adjust message white and black lists
     messages = {"RALLY_POINT", "PARAM_VALUE"}
     for message in messages:
-        white_list.add(message)
-        black_list.discard(message)
+        message_white_list.add(message)
+        message_black_list.discard(message)
 
     # create response and add vehicle presence to response
     response = {"command": "POST_RALLY", "connected": vehicle_connected, "valid": False, "sent": False}
@@ -879,7 +881,8 @@ def post_rally():
 @application.route(rule="/post/fence", methods=["POST"])
 def post_fence():
     # get global variables
-    global white_list, black_list
+    global message_white_list, message_black_list
+    global parameter_white_list, parameter_black_list
     global vehicle, vehicle_connected
     global send_fence_data, schema_fence
     global parameter_data
@@ -890,8 +893,14 @@ def post_fence():
     # adjust message white and black lists
     messages = {"FENCE_POINT", "PARAM_VALUE"}
     for message in messages:
-        white_list.add(message)
-        black_list.discard(message)
+        message_white_list.add(message)
+        message_black_list.discard(message)
+
+    # adjust parameter white and black lists
+    parameters = {"FENCE_ACTION"}
+    for parameter in parameters:
+        parameter_white_list.add(parameter)
+        parameter_black_list.discard(parameter)
 
     # request fence action parameter if not exits
     if "FENCE_ACTION" not in parameter_data.keys():
@@ -1066,9 +1075,12 @@ def page_not_found(error):
 
 
 # connect to vehicle and parse messages
-def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fence, rally, reset, request):
+def receive_telemetry(master, timeout, drop, rate,
+                      white_message, black_message, white_parameter, black_parameter,
+                      param, plan, fence, rally, reset, request):
     # get global variables
-    global white_list, black_list
+    global message_white_list, message_black_list
+    global parameter_white_list, parameter_black_list
     global vehicle, vehicle_connected
     global message_data, message_enumeration
     global parameter_data, parameter_count_total, parameter_count
@@ -1086,35 +1098,44 @@ def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fe
     if drop == 0:
         drop = None
 
-    # create white list set used in non-periodic parameter and flight plan related messages
-    white_list = {"PARAM_VALUE", "MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "MISSION_REQUEST", "FENCE_POINT",
-                  "RALLY_POINT"}
+    # create message white list set used in non-periodic parameter and flight plan related messages
+    message_white_list = {"PARAM_VALUE", "MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "MISSION_REQUEST",
+                          "FENCE_POINT", "RALLY_POINT"}
 
-    # parse white list based on user requirements
-    white_list = white_list if white == "" else white_list | {x for x in white.split(",")}
+    # parse message white list based on user requirements
+    message_white_list = message_white_list if white_message == "" else message_white_list | {x for x in white_message.replace(" ", "").split(",")}
 
-    # parse black list based on user requirements
-    black_list = set() if black == "" else {x for x in black.split(",")}
+    # parse message black list based on user requirements
+    message_black_list = set() if black_message == "" else {x for x in black_message.replace(" ", "").split(",")}
+
+    # create parameter white list
+    parameter_white_list = {"FENCE_ACTION"}
+
+    # parse parameter white list based on user requirements
+    parameter_white_list = parameter_white_list if white_parameter == "" else parameter_white_list | {x for x in white_parameter.replace(" ", "").split(",")}
+
+    # parse parameter black list based on user requirements
+    parameter_black_list = set() if black_parameter == "" else {x for x in black_parameter.replace(" ", "").split(",")}
 
     # user did not request to populate parameter values
     if not param:
         # add parameter value message to black list
-        black_list |= {"PARAM_VALUE"}
+        message_black_list |= {"PARAM_VALUE"}
 
     # user did not request to populate flight plan items
     if not plan:
         # add flight plan related messages to black list
-        black_list |= {"MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "MISSION_REQUEST"}
+        message_black_list |= {"MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "MISSION_REQUEST"}
 
     # user did not request to populate fence
     if not fence:
         # add fence related messages to black list
-        black_list |= {"FENCE_POINT"}
+        message_black_list |= {"FENCE_POINT"}
 
     # user did not request to populate rally
     if not rally:
         # add rally related messages to black list
-        black_list |= {"RALLY_POINT"}
+        message_black_list |= {"RALLY_POINT"}
 
     # infinite connection loop
     while True:
@@ -1247,11 +1268,11 @@ def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fe
             message_name = message_dict.pop("mavpackettype")
 
             # do not proceed if message is in the black list
-            if message_name in black_list:
+            if message_name in message_black_list:
                 continue
 
             # do not proceed if message is not in the white list
-            if len(white) > 1 and message_name not in white_list:
+            if len(white_message) > 1 and message_name not in message_white_list:
                 continue
 
             # discard bad data
@@ -1350,6 +1371,14 @@ def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fe
 
             # message contains a parameter value
             if message_name == "PARAM_VALUE":
+
+                # do not proceed if parameter is in the black list
+                if message_dict["param_id"] in parameter_black_list:
+                    continue
+
+                # do not proceed if parameter is not in the white list
+                if len(white_parameter) > 1 and message_dict["param_id"] not in parameter_white_list:
+                    continue
 
                 # create a parameter space to parameter data if not exist
                 if message_dict["param_id"] not in parameter_data.keys():
@@ -1601,10 +1630,14 @@ def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fe
               help="Drop non-periodic messages after this seconds, zero means do not drop.")
 @click.option("--rate", default=4, type=click.IntRange(min=0, clamp=True), required=False,
               help="Message stream that will be requested from vehicle, zero means do not request.")
-@click.option("--white", default="", type=click.STRING, required=False,
+@click.option("--white_message", default="", type=click.STRING, required=False,
               help="Comma separated white list to filter messages, empty means all messages are in white list.")
-@click.option("--black", default="", type=click.STRING, required=False,
+@click.option("--black_message", default="", type=click.STRING, required=False,
               help="Comma separated black list to filter messages.")
+@click.option("--white_parameter", default="", type=click.STRING, required=False,
+              help="Comma separated white list to filter parameters, empty means all parameters are in white list.")
+@click.option("--black_parameter", default="", type=click.STRING, required=False,
+              help="Comma separated black list to filter parameters.")
 @click.option("--param", default=True, type=click.BOOL, required=False,
               help="Fetch parameters.")
 @click.option("--plan", default=True, type=click.BOOL, required=False,
@@ -1619,7 +1652,9 @@ def receive_telemetry(master, timeout, drop, rate, white, black, param, plan, fe
               help="User-defined custom key-value pairs.")
 @click.option("--request", default="", type=click.STRING, required=False,
               help="Request non-default message streams with frequency.")
-def main(host, port, master, timeout, drop, rate, white, black, param, plan, fence, rally, reset, custom, request):
+def main(host, port, master, timeout, drop, rate,
+         white_message, black_message, white_parameter, black_parameter,
+         param, plan, fence, rally, reset, custom, request):
     # get global variables
     global custom_data
 
@@ -1640,7 +1675,8 @@ def main(host, port, master, timeout, drop, rate, white, black, param, plan, fen
         request = {}
 
     # start telemetry receiver thread
-    threading.Thread(target=receive_telemetry, args=(master, timeout, drop, rate, white, black,
+    threading.Thread(target=receive_telemetry, args=(master, timeout, drop, rate,
+                                                     white_message, black_message, white_parameter, black_parameter,
                                                      param, plan, fence, rally, reset, request)).start()
 
     # create server
