@@ -26,7 +26,7 @@ Python RESTful API for MAVLink enabled vehicles
 * Reconnect to vehicle if not received a message within a timeout
 * Drop non-periodic messages after a desired timeout
 * Set message stream rate
-* Message whitelist/blacklist support
+* Message & parameter whitelist/blacklist support
 * Fetch parameters and plan, fence and rally items at start
 * Reset on-board vehicle statistics on start
 * Initialize custom key-value pair endpoint at start
@@ -442,7 +442,7 @@ curl -i -X POST -H "Content-Type: application/json" -d '[ { "target_system": 0, 
 ### Advanced run and query
 
 ```bash
-/usr/bin/python3 pymavrest.py --host="127.0.0.1" --port=2609 --master="udpin:127.0.0.1:14550" --timeout=5.0 --drop=5.0 --rate=4 --white="GLOBAL_POSITION_INT,ATTITUDE,VFR_HUD" --black="VFR_HUD" --param=True --plan=True --fence=True --rally=True --reset=True --custom='{"pi": 3.14}' --request='{"245": 5}'
+/usr/bin/python3 pymavrest.py --host="127.0.0.1" --port=2609 --master="udpin:127.0.0.1:14550" --timeout=5.0 --drop=5.0 --rate=4 --white_message="GLOBAL_POSITION_INT,ATTITUDE,VFR_HUD" --black_message="VFR_HUD" --param=True --plan=True --fence=True --rally=True --reset=True --custom='{"pi": 3.14}' --request='{"245": 5}' --white_parameter="SYSID_THISMAV,SYSID_MYGCS" --black_parameter="SYSID_MYGCS"
 ```
 
 ```bash
@@ -498,20 +498,22 @@ curl http://127.0.0.1:2609/get/message/all
 
 ## Arguments
 
-| Argument | Type  | Default                 | Help                                                                                         |
-|----------|-------|-------------------------|----------------------------------------------------------------------------------------------|
-| host     | str   | "127.0.0.1"             | Pymavrest server IP address                                                                  |
-| port     | int   | 2609                    | Pymavrest server port number                                                                 |
-| master   | str   | "udpin:127.0.0.1:14550" | Standard MAVLink connection string                                                           |
-| timeout  | float | 5.0                     | Try to reconnect after this seconds when no message is received, zero means do not reconnect |
-| drop     | float | 5.0                     | Drop non-periodic messages after this seconds, zero means do not drop                        |
-| rate     | int   | 4                       | Message stream that will be requested from vehicle, zero means do not request                |
-| white    | str   | ""                      | Comma separated white list to filter messages, empty means all messages are in white list    |
-| black    | str   | ""                      | Comma separated black list to filter messages                                                |
-| param    | bool  | True                    | Fetch parameters                                                                             |
-| plan     | bool  | True                    | Fetch plan                                                                                   |
-| fence    | bool  | True                    | Fetch fence                                                                                  |
-| rally    | bool  | True                    | Fetch rally                                                                                  |
-| reset    | bool  | False                   | Reset on-board vehicle statistics on start                                                   |
-| custom   | str   | ""                      | User-defined custom key-value pairs                                                          |
-| request  | str   | ""                      | Request non-default message streams with frequency                                           |
+| Argument        | Type  | Default                 | Help                                                                                          |
+|-----------------|-------|-------------------------|-----------------------------------------------------------------------------------------------|
+| host            | str   | "127.0.0.1"             | Pymavrest server IP address                                                                   |
+| port            | int   | 2609                    | Pymavrest server port number                                                                  |
+| master          | str   | "udpin:127.0.0.1:14550" | Standard MAVLink connection string                                                            |
+| timeout         | float | 5.0                     | Try to reconnect after this seconds when no message is received, zero means do not reconnect  |
+| drop            | float | 5.0                     | Drop non-periodic messages after this seconds, zero means do not drop                         |
+| rate            | int   | 4                       | Message stream that will be requested from vehicle, zero means do not request                 |
+| white_message   | str   | ""                      | Comma separated white list to filter messages, empty means all messages are in white list     |
+| black_message   | str   | ""                      | Comma separated black list to filter messages                                                 |
+| white_parameter | str   | ""                      | Comma separated white list to filter parameters, empty means all parameters are in white list |
+| black_parameter | str   | ""                      | Comma separated black list to filter parameters                                               |
+| param           | bool  | True                    | Fetch parameters                                                                              |
+| plan            | bool  | True                    | Fetch plan                                                                                    |
+| fence           | bool  | True                    | Fetch fence                                                                                   |
+| rally           | bool  | True                    | Fetch rally                                                                                   |
+| reset           | bool  | False                   | Reset on-board vehicle statistics on start                                                    |
+| custom          | str   | ""                      | User-defined custom key-value pairs                                                           |
+| request         | str   | ""                      | Request non-default message streams with frequency                                            |
