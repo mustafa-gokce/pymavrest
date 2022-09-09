@@ -329,6 +329,12 @@ curl http://127.0.0.1:2609/get/statistics
 }
 ```
 
+#### Dump all API data
+
+```bash
+curl http://127.0.0.1:2609/get/all
+```
+
 #### Post `COMMAND_INT` command message to vehicle
 
 To move to a position in `GUIDED` mode using `COMMAND_INT` command message:
