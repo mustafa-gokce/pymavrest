@@ -1122,7 +1122,8 @@ def receive_telemetry(master, timeout, drop, rate,
                           "FENCE_POINT", "RALLY_POINT"}
 
     # parse message white list based on user requirements
-    message_white_list = message_white_list if white_message == "" else message_white_list | {x for x in white_message.replace(" ", "").split(",")}
+    if white_message != "":
+        message_white_list = message_white_list | {x for x in white_message.replace(" ", "").split(",")}
 
     # parse message black list based on user requirements
     message_black_list = set() if black_message == "" else {x for x in black_message.replace(" ", "").split(",")}
@@ -1131,7 +1132,8 @@ def receive_telemetry(master, timeout, drop, rate,
     parameter_white_list = {"FENCE_ACTION"}
 
     # parse parameter white list based on user requirements
-    parameter_white_list = parameter_white_list if white_parameter == "" else parameter_white_list | {x for x in white_parameter.replace(" ", "").split(",")}
+    if white_parameter != "":
+        parameter_white_list = parameter_white_list | {x for x in white_parameter.replace(" ", "").split(",")}
 
     # parse parameter black list based on user requirements
     parameter_black_list = set() if black_parameter == "" else {x for x in black_parameter.replace(" ", "").split(",")}
