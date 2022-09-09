@@ -187,6 +187,25 @@ schema_fence = {
 }
 
 
+# get all data
+@application.route(rule="/get/all", methods=["GET"])
+def get_all():
+    # get all data
+    global message_data, parameter_data, plan_data, fence_data, rally_data, custom_data, statistics_data
+
+    # create all data
+    all_data = {"message": message_data,
+                "parameter": parameter_data,
+                "plan": plan_data,
+                "fence": fence_data,
+                "rally": rally_data,
+                "custom": custom_data,
+                "statistics": statistics_data}
+
+    # expose the response
+    return flask.jsonify(all_data)
+
+
 # get time data
 @application.route(rule="/get/statistics", methods=["GET"])
 def get_statistics():
