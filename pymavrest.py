@@ -48,6 +48,7 @@ send_plan_data = []
 send_fence_data = []
 send_rally_data = []
 statistics_data = {"api": {}, "vehicle": {}}
+hold_statistics = False
 
 # COMMAND_LONG schema for validation
 schema_command_long = {
@@ -210,44 +211,47 @@ def get_all():
 @application.route(rule="/get/statistics", methods=["GET"])
 def get_statistics():
     # get time data
-    global statistics_data
+    global statistics_data, hold_statistics
 
-    # get timestamps
-    time_monotonic = time.monotonic()
-    time_now = time.time()
+    # user requested to hold statistics
+    if hold_statistics:
 
-    # this is requested for the first time
-    if "statistics" not in statistics_data["api"].keys():
+        # get timestamps
+        time_monotonic = time.monotonic()
+        time_now = time.time()
 
-        # initiate statistics data
-        statistics_data["api"]["statistics"] = {}
-        statistics_data["api"]["statistics"]["counter"] = 0
-        statistics_data["api"]["statistics"]["latency"] = 0
-        statistics_data["api"]["statistics"]["first"] = time_now
-        statistics_data["api"]["statistics"]["first_monotonic"] = time_monotonic
-        statistics_data["api"]["statistics"]["last"] = time_now
-        statistics_data["api"]["statistics"]["last_monotonic"] = time_monotonic
-        statistics_data["api"]["statistics"]["duration"] = 0
-        statistics_data["api"]["statistics"]["instant_frequency"] = 0
-        statistics_data["api"]["statistics"]["average_frequency"] = 0
+        # this is requested for the first time
+        if "statistics" not in statistics_data["api"].keys():
 
-    # this is requested before
-    else:
+            # initiate statistics data
+            statistics_data["api"]["statistics"] = {}
+            statistics_data["api"]["statistics"]["counter"] = 0
+            statistics_data["api"]["statistics"]["latency"] = 0
+            statistics_data["api"]["statistics"]["first"] = time_now
+            statistics_data["api"]["statistics"]["first_monotonic"] = time_monotonic
+            statistics_data["api"]["statistics"]["last"] = time_now
+            statistics_data["api"]["statistics"]["last_monotonic"] = time_monotonic
+            statistics_data["api"]["statistics"]["duration"] = 0
+            statistics_data["api"]["statistics"]["instant_frequency"] = 0
+            statistics_data["api"]["statistics"]["average_frequency"] = 0
 
-        # update statistics data
-        statistics_data["api"]["statistics"]["counter"] += 1
-        latency = time_monotonic - statistics_data["api"]["statistics"]["last_monotonic"]
-        first_monotonic = statistics_data["api"]["statistics"]["first_monotonic"]
-        duration = time_monotonic - first_monotonic
-        instant_frequency = 1.0 / latency if latency != 0.0 else 0.0
-        counter = statistics_data["api"]["statistics"]["counter"]
-        average_frequency = counter / duration if duration != 0.0 else 0
-        statistics_data["api"]["statistics"]["latency"] = latency
-        statistics_data["api"]["statistics"]["last"] = time_now
-        statistics_data["api"]["statistics"]["last_monotonic"] = time_monotonic
-        statistics_data["api"]["statistics"]["duration"] = duration
-        statistics_data["api"]["statistics"]["instant_frequency"] = instant_frequency
-        statistics_data["api"]["statistics"]["average_frequency"] = average_frequency
+        # this is requested before
+        else:
+
+            # update statistics data
+            statistics_data["api"]["statistics"]["counter"] += 1
+            latency = time_monotonic - statistics_data["api"]["statistics"]["last_monotonic"]
+            first_monotonic = statistics_data["api"]["statistics"]["first_monotonic"]
+            duration = time_monotonic - first_monotonic
+            instant_frequency = 1.0 / latency if latency != 0.0 else 0.0
+            counter = statistics_data["api"]["statistics"]["counter"]
+            average_frequency = counter / duration if duration != 0.0 else 0
+            statistics_data["api"]["statistics"]["latency"] = latency
+            statistics_data["api"]["statistics"]["last"] = time_now
+            statistics_data["api"]["statistics"]["last_monotonic"] = time_monotonic
+            statistics_data["api"]["statistics"]["duration"] = duration
+            statistics_data["api"]["statistics"]["instant_frequency"] = instant_frequency
+            statistics_data["api"]["statistics"]["average_frequency"] = average_frequency
 
     # expose the response
     return flask.jsonify(statistics_data)
@@ -1107,7 +1111,7 @@ def receive_telemetry(master, timeout, drop, rate,
     global fence_data, fence_count_total, fence_count
     global rally_data, rally_count_total, rally_count
     global send_plan_data, send_fence_data, send_rally_data
-    global statistics_data
+    global statistics_data, hold_statistics
 
     # zero time out means do not time out
     if timeout == 0:
@@ -1249,38 +1253,41 @@ def receive_telemetry(master, timeout, drop, rate,
             time_monotonic = time.monotonic()
             time_now = time.time()
 
-            # create vehicle statistics
-            if "statistics" not in statistics_data["vehicle"].keys():
+            # user requested to hold statistics
+            if hold_statistics:
 
-                # initiate statistics data
-                statistics_data["vehicle"]["statistics"] = {}
-                statistics_data["vehicle"]["statistics"]["counter"] = 2 if param or plan else 1
-                statistics_data["vehicle"]["statistics"]["latency"] = 0
-                statistics_data["vehicle"]["statistics"]["first"] = time_now
-                statistics_data["vehicle"]["statistics"]["first_monotonic"] = time_monotonic
-                statistics_data["vehicle"]["statistics"]["last"] = time_now
-                statistics_data["vehicle"]["statistics"]["last_monotonic"] = time_monotonic
-                statistics_data["vehicle"]["statistics"]["duration"] = 0
-                statistics_data["vehicle"]["statistics"]["instant_frequency"] = 0
-                statistics_data["vehicle"]["statistics"]["average_frequency"] = 0
+                # create vehicle statistics
+                if "statistics" not in statistics_data["vehicle"].keys():
 
-            # update vehicle statistics
-            else:
+                    # initiate statistics data
+                    statistics_data["vehicle"]["statistics"] = {}
+                    statistics_data["vehicle"]["statistics"]["counter"] = 2 if param or plan else 1
+                    statistics_data["vehicle"]["statistics"]["latency"] = 0
+                    statistics_data["vehicle"]["statistics"]["first"] = time_now
+                    statistics_data["vehicle"]["statistics"]["first_monotonic"] = time_monotonic
+                    statistics_data["vehicle"]["statistics"]["last"] = time_now
+                    statistics_data["vehicle"]["statistics"]["last_monotonic"] = time_monotonic
+                    statistics_data["vehicle"]["statistics"]["duration"] = 0
+                    statistics_data["vehicle"]["statistics"]["instant_frequency"] = 0
+                    statistics_data["vehicle"]["statistics"]["average_frequency"] = 0
 
-                # update statistics data
-                statistics_data["vehicle"]["statistics"]["counter"] += 1
-                latency = time_monotonic - statistics_data["vehicle"]["statistics"]["last_monotonic"]
-                first_monotonic = statistics_data["vehicle"]["statistics"]["first_monotonic"]
-                duration = time_monotonic - first_monotonic
-                instant_frequency = 1.0 / latency if latency != 0.0 else 0.0
-                counter = statistics_data["vehicle"]["statistics"]["counter"]
-                average_frequency = counter / duration if duration != 0.0 else 0
-                statistics_data["vehicle"]["statistics"]["latency"] = latency
-                statistics_data["vehicle"]["statistics"]["last"] = time_now
-                statistics_data["vehicle"]["statistics"]["last_monotonic"] = time_monotonic
-                statistics_data["vehicle"]["statistics"]["duration"] = duration
-                statistics_data["vehicle"]["statistics"]["instant_frequency"] = instant_frequency
-                statistics_data["vehicle"]["statistics"]["average_frequency"] = average_frequency
+                # update vehicle statistics
+                else:
+
+                    # update statistics data
+                    statistics_data["vehicle"]["statistics"]["counter"] += 1
+                    latency = time_monotonic - statistics_data["vehicle"]["statistics"]["last_monotonic"]
+                    first_monotonic = statistics_data["vehicle"]["statistics"]["first_monotonic"]
+                    duration = time_monotonic - first_monotonic
+                    instant_frequency = 1.0 / latency if latency != 0.0 else 0.0
+                    counter = statistics_data["vehicle"]["statistics"]["counter"]
+                    average_frequency = counter / duration if duration != 0.0 else 0
+                    statistics_data["vehicle"]["statistics"]["latency"] = latency
+                    statistics_data["vehicle"]["statistics"]["last"] = time_now
+                    statistics_data["vehicle"]["statistics"]["last_monotonic"] = time_monotonic
+                    statistics_data["vehicle"]["statistics"]["duration"] = duration
+                    statistics_data["vehicle"]["statistics"]["instant_frequency"] = instant_frequency
+                    statistics_data["vehicle"]["statistics"]["average_frequency"] = average_frequency
 
             # convert raw message to dictionary
             message_dict = message_raw.to_dict()
@@ -1317,38 +1324,41 @@ def receive_telemetry(master, timeout, drop, rate,
             # add message id of this message to message enumeration list
             message_enumeration[message_name] = message_id
 
-            # this message is populated for the first time
-            if "statistics" not in message_data[message_name].keys():
+            # user requested to hold statistics
+            if hold_statistics:
 
-                # initiate statistics data for this message
-                message_data[message_name]["statistics"] = {}
-                message_data[message_name]["statistics"]["counter"] = 1
-                message_data[message_name]["statistics"]["latency"] = 0
-                message_data[message_name]["statistics"]["first"] = time_now
-                message_data[message_name]["statistics"]["first_monotonic"] = time_monotonic
-                message_data[message_name]["statistics"]["last"] = time_now
-                message_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
-                message_data[message_name]["statistics"]["duration"] = 0
-                message_data[message_name]["statistics"]["instant_frequency"] = 0
-                message_data[message_name]["statistics"]["average_frequency"] = 0
+                # this message is populated for the first time
+                if "statistics" not in message_data[message_name].keys():
 
-            # this message was populated before
-            else:
+                    # initiate statistics data for this message
+                    message_data[message_name]["statistics"] = {}
+                    message_data[message_name]["statistics"]["counter"] = 1
+                    message_data[message_name]["statistics"]["latency"] = 0
+                    message_data[message_name]["statistics"]["first"] = time_now
+                    message_data[message_name]["statistics"]["first_monotonic"] = time_monotonic
+                    message_data[message_name]["statistics"]["last"] = time_now
+                    message_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
+                    message_data[message_name]["statistics"]["duration"] = 0
+                    message_data[message_name]["statistics"]["instant_frequency"] = 0
+                    message_data[message_name]["statistics"]["average_frequency"] = 0
 
-                # update statistics data for this message
-                message_data[message_name]["statistics"]["counter"] += 1
-                latency = time_monotonic - message_data[message_name]["statistics"]["last_monotonic"]
-                first_monotonic = message_data[message_name]["statistics"]["first_monotonic"]
-                duration = time_monotonic - first_monotonic
-                instant_frequency = 1.0 / latency if latency != 0.0 else 0.0
-                counter = message_data[message_name]["statistics"]["counter"]
-                average_frequency = counter / duration if duration != 0.0 else 0
-                message_data[message_name]["statistics"]["latency"] = latency
-                message_data[message_name]["statistics"]["last"] = time_now
-                message_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
-                message_data[message_name]["statistics"]["duration"] = duration
-                message_data[message_name]["statistics"]["instant_frequency"] = instant_frequency
-                message_data[message_name]["statistics"]["average_frequency"] = average_frequency
+                # this message was populated before
+                else:
+
+                    # update statistics data for this message
+                    message_data[message_name]["statistics"]["counter"] += 1
+                    latency = time_monotonic - message_data[message_name]["statistics"]["last_monotonic"]
+                    first_monotonic = message_data[message_name]["statistics"]["first_monotonic"]
+                    duration = time_monotonic - first_monotonic
+                    instant_frequency = 1.0 / latency if latency != 0.0 else 0.0
+                    counter = message_data[message_name]["statistics"]["counter"]
+                    average_frequency = counter / duration if duration != 0.0 else 0
+                    message_data[message_name]["statistics"]["latency"] = latency
+                    message_data[message_name]["statistics"]["last"] = time_now
+                    message_data[message_name]["statistics"]["last_monotonic"] = time_monotonic
+                    message_data[message_name]["statistics"]["duration"] = duration
+                    message_data[message_name]["statistics"]["instant_frequency"] = instant_frequency
+                    message_data[message_name]["statistics"]["average_frequency"] = average_frequency
 
             # message that request a plan item
             if message_name == "MISSION_REQUEST":
@@ -1414,38 +1424,41 @@ def receive_telemetry(master, timeout, drop, rate,
                 # add parameter index to parameter count list to not request this parameter value again
                 parameter_count.add(message_dict["param_index"])
 
-                # this parameter is populated for the first time
-                if "statistics" not in parameter_data[message_dict["param_id"]].keys():
+                # user requested to hold statistics
+                if hold_statistics:
 
-                    # initiate statistics data for this parameter
-                    parameter_data[message_dict["param_id"]]["statistics"] = {}
-                    parameter_data[message_dict["param_id"]]["statistics"]["counter"] = 1
-                    parameter_data[message_dict["param_id"]]["statistics"]["latency"] = 0
-                    parameter_data[message_dict["param_id"]]["statistics"]["first"] = time_now
-                    parameter_data[message_dict["param_id"]]["statistics"]["first_monotonic"] = time_monotonic
-                    parameter_data[message_dict["param_id"]]["statistics"]["last"] = time_now
-                    parameter_data[message_dict["param_id"]]["statistics"]["last_monotonic"] = time_monotonic
-                    parameter_data[message_dict["param_id"]]["statistics"]["duration"] = 0
-                    parameter_data[message_dict["param_id"]]["statistics"]["instant_frequency"] = 0
-                    parameter_data[message_dict["param_id"]]["statistics"]["average_frequency"] = 0
+                    # this parameter is populated for the first time
+                    if "statistics" not in parameter_data[message_dict["param_id"]].keys():
 
-                # this parameter was populated before
-                else:
+                        # initiate statistics data for this parameter
+                        parameter_data[message_dict["param_id"]]["statistics"] = {}
+                        parameter_data[message_dict["param_id"]]["statistics"]["counter"] = 1
+                        parameter_data[message_dict["param_id"]]["statistics"]["latency"] = 0
+                        parameter_data[message_dict["param_id"]]["statistics"]["first"] = time_now
+                        parameter_data[message_dict["param_id"]]["statistics"]["first_monotonic"] = time_monotonic
+                        parameter_data[message_dict["param_id"]]["statistics"]["last"] = time_now
+                        parameter_data[message_dict["param_id"]]["statistics"]["last_monotonic"] = time_monotonic
+                        parameter_data[message_dict["param_id"]]["statistics"]["duration"] = 0
+                        parameter_data[message_dict["param_id"]]["statistics"]["instant_frequency"] = 0
+                        parameter_data[message_dict["param_id"]]["statistics"]["average_frequency"] = 0
 
-                    # update statistics data for this parameter
-                    parameter_data[message_dict["param_id"]]["statistics"]["counter"] += 1
-                    latency = time_monotonic - parameter_data[message_dict["param_id"]]["statistics"]["last_monotonic"]
-                    first_monotonic = parameter_data[message_dict["param_id"]]["statistics"]["first_monotonic"]
-                    duration = time_monotonic - first_monotonic
-                    instant_frequency = 1.0 / latency if latency != 0.0 else 0.0
-                    counter = parameter_data[message_dict["param_id"]]["statistics"]["counter"]
-                    average_frequency = counter / duration if duration != 0.0 else 0.0
-                    parameter_data[message_dict["param_id"]]["statistics"]["latency"] = latency
-                    parameter_data[message_dict["param_id"]]["statistics"]["last"] = time_now
-                    parameter_data[message_dict["param_id"]]["statistics"]["last_monotonic"] = time_monotonic
-                    parameter_data[message_dict["param_id"]]["statistics"]["duration"] = duration
-                    parameter_data[message_dict["param_id"]]["statistics"]["instant_frequency"] = instant_frequency
-                    parameter_data[message_dict["param_id"]]["statistics"]["average_frequency"] = average_frequency
+                    # this parameter was populated before
+                    else:
+
+                        # update statistics data for this parameter
+                        parameter_data[message_dict["param_id"]]["statistics"]["counter"] += 1
+                        latency = time_monotonic - parameter_data[message_dict["param_id"]]["statistics"]["last_monotonic"]
+                        first_monotonic = parameter_data[message_dict["param_id"]]["statistics"]["first_monotonic"]
+                        duration = time_monotonic - first_monotonic
+                        instant_frequency = 1.0 / latency if latency != 0.0 else 0.0
+                        counter = parameter_data[message_dict["param_id"]]["statistics"]["counter"]
+                        average_frequency = counter / duration if duration != 0.0 else 0.0
+                        parameter_data[message_dict["param_id"]]["statistics"]["latency"] = latency
+                        parameter_data[message_dict["param_id"]]["statistics"]["last"] = time_now
+                        parameter_data[message_dict["param_id"]]["statistics"]["last_monotonic"] = time_monotonic
+                        parameter_data[message_dict["param_id"]]["statistics"]["duration"] = duration
+                        parameter_data[message_dict["param_id"]]["statistics"]["instant_frequency"] = instant_frequency
+                        parameter_data[message_dict["param_id"]]["statistics"]["average_frequency"] = average_frequency
 
                 # update fence count
                 if message_dict["param_id"] == "FENCE_TOTAL":
@@ -1520,17 +1533,19 @@ def receive_telemetry(master, timeout, drop, rate,
                 # check this flight plan command was not populated before
                 if message_dict["seq"] not in plan_count:
 
-                    # initiate statistics data for this flight plan command
-                    message_dict["statistics"] = {}
-                    message_dict["statistics"]["counter"] = 1
-                    message_dict["statistics"]["latency"] = 0
-                    message_dict["statistics"]["first"] = time_now
-                    message_dict["statistics"]["first_monotonic"] = time_monotonic
-                    message_dict["statistics"]["last"] = time_now
-                    message_dict["statistics"]["last_monotonic"] = time_monotonic
-                    message_dict["statistics"]["duration"] = 0
-                    message_dict["statistics"]["instant_frequency"] = 0
-                    message_dict["statistics"]["average_frequency"] = 0
+                    # user requested to hold statistics
+                    if hold_statistics:
+                        # initiate statistics data for this flight plan command
+                        message_dict["statistics"] = {}
+                        message_dict["statistics"]["counter"] = 1
+                        message_dict["statistics"]["latency"] = 0
+                        message_dict["statistics"]["first"] = time_now
+                        message_dict["statistics"]["first_monotonic"] = time_monotonic
+                        message_dict["statistics"]["last"] = time_now
+                        message_dict["statistics"]["last_monotonic"] = time_monotonic
+                        message_dict["statistics"]["duration"] = 0
+                        message_dict["statistics"]["instant_frequency"] = 0
+                        message_dict["statistics"]["average_frequency"] = 0
 
                     # add flight plan command to plan data
                     plan_data.append(message_dict)
@@ -1559,17 +1574,19 @@ def receive_telemetry(master, timeout, drop, rate,
                 # check this fence item was not populated before
                 if message_dict["idx"] not in fence_count:
 
-                    # initiate statistics data for this fence item
-                    message_dict["statistics"] = {}
-                    message_dict["statistics"]["counter"] = 1
-                    message_dict["statistics"]["latency"] = 0
-                    message_dict["statistics"]["first"] = time_now
-                    message_dict["statistics"]["first_monotonic"] = time_monotonic
-                    message_dict["statistics"]["last"] = time_now
-                    message_dict["statistics"]["last_monotonic"] = time_monotonic
-                    message_dict["statistics"]["duration"] = 0
-                    message_dict["statistics"]["instant_frequency"] = 0
-                    message_dict["statistics"]["average_frequency"] = 0
+                    # user requested to hold statistics
+                    if hold_statistics:
+                        # initiate statistics data for this fence item
+                        message_dict["statistics"] = {}
+                        message_dict["statistics"]["counter"] = 1
+                        message_dict["statistics"]["latency"] = 0
+                        message_dict["statistics"]["first"] = time_now
+                        message_dict["statistics"]["first_monotonic"] = time_monotonic
+                        message_dict["statistics"]["last"] = time_now
+                        message_dict["statistics"]["last_monotonic"] = time_monotonic
+                        message_dict["statistics"]["duration"] = 0
+                        message_dict["statistics"]["instant_frequency"] = 0
+                        message_dict["statistics"]["average_frequency"] = 0
 
                     # add fence item to fence data
                     fence_data.append(message_dict)
@@ -1598,17 +1615,19 @@ def receive_telemetry(master, timeout, drop, rate,
                 # check this rally item was not populated before
                 if message_dict["idx"] not in rally_count:
 
-                    # initiate statistics data for this rally item
-                    message_dict["statistics"] = {}
-                    message_dict["statistics"]["counter"] = 1
-                    message_dict["statistics"]["latency"] = 0
-                    message_dict["statistics"]["first"] = time_now
-                    message_dict["statistics"]["first_monotonic"] = time_monotonic
-                    message_dict["statistics"]["last"] = time_now
-                    message_dict["statistics"]["last_monotonic"] = time_monotonic
-                    message_dict["statistics"]["duration"] = 0
-                    message_dict["statistics"]["instant_frequency"] = 0
-                    message_dict["statistics"]["average_frequency"] = 0
+                    # user requested to hold statistics
+                    if hold_statistics:
+                        # initiate statistics data for this rally item
+                        message_dict["statistics"] = {}
+                        message_dict["statistics"]["counter"] = 1
+                        message_dict["statistics"]["latency"] = 0
+                        message_dict["statistics"]["first"] = time_now
+                        message_dict["statistics"]["first_monotonic"] = time_monotonic
+                        message_dict["statistics"]["last"] = time_now
+                        message_dict["statistics"]["last_monotonic"] = time_monotonic
+                        message_dict["statistics"]["duration"] = 0
+                        message_dict["statistics"]["instant_frequency"] = 0
+                        message_dict["statistics"]["average_frequency"] = 0
 
                     # add rally item to rally data
                     rally_data.append(message_dict)
@@ -1632,7 +1651,7 @@ def receive_telemetry(master, timeout, drop, rate,
                         break
 
             # drop non-periodic messages if user requested
-            if drop:
+            if drop and hold_statistics:
                 for message_name in list(message_data.keys()):
                     if time_monotonic - message_data[message_name]["statistics"]["last_monotonic"] > drop:
                         message_data.pop(message_name)
@@ -1673,11 +1692,16 @@ def receive_telemetry(master, timeout, drop, rate,
               help="User-defined custom key-value pairs.")
 @click.option("--request", default="", type=click.STRING, required=False,
               help="Request non-default message streams with frequency.")
+@click.option("--statistics", default=False, type=click.BOOL, required=False,
+              help="Hold statistics.")
 def main(host, port, master, timeout, drop, rate,
          white_message, black_message, white_parameter, black_parameter,
-         param, plan, fence, rally, reset, custom, request):
+         param, plan, fence, rally, reset, custom, request, statistics):
     # get global variables
-    global custom_data
+    global custom_data, hold_statistics
+
+    # set hold statistics flag
+    hold_statistics = statistics
 
     # check user defined some key value pairs
     if custom != "":
@@ -1703,15 +1727,16 @@ def main(host, port, master, timeout, drop, rate,
     # create server
     server = gevent.pywsgi.WSGIServer(listener=(host, port), application=application, log=application.logger)
 
+    # set statistics data
+    if hold_statistics:
+        with application.app_context():
+            get_statistics()
+
     # run server
     server.serve_forever()
 
 
 # main entry point
 if __name__ == "__main__":
-    # set statistics data
-    with application.app_context():
-        get_statistics()
-
     # run main function
     main()
