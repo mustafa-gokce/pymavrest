@@ -30,6 +30,9 @@ class Parameter(enum.Enum):
     FENCE_ACTION = "FENCE_ACTION"
     FENCE_TOTAL = "FENCE_TOTAL"
     STAT_RESET = "STAT_RESET"
+    STAT_BOOTCNT = "STAT_BOOTCNT"
+    STAT_FLTTIME = "STAT_FLTTIME"
+    STAT_RUNTIME = "STAT_RUNTIME"
     SYSID_THISMAV = "SYSID_THISMAV"
 
 
@@ -1168,7 +1171,11 @@ def receive_telemetry(master, timeout, drop, rate,
     message_black_list = set() if black_message == "" else {x for x in black_message.replace(" ", "").split(",")}
 
     # create parameter white list
-    parameter_white_list = {Parameter.FENCE_ACTION.value}
+    parameter_white_list = {Parameter.FENCE_ACTION.value,
+                            Parameter.STAT_BOOTCNT.value,
+                            Parameter.STAT_FLTTIME.value,
+                            Parameter.STAT_RESET.value,
+                            Parameter.STAT_RUNTIME.value}
 
     # parse parameter white list based on user requirements
     if white_parameter != "":
