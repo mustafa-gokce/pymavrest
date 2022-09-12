@@ -560,7 +560,7 @@ def post_command_long():
     request = flask.request.json
 
     # adjust message white and black lists
-    messages = {"COMMAND_ACK"}
+    messages = {dialect.MAVLink_command_ack_message.msgname}
     for message in messages:
         message_white_list.add(message)
         message_black_list.discard(message)
@@ -615,7 +615,7 @@ def post_command_int():
     request = flask.request.json
 
     # adjust message white and black lists
-    messages = {"COMMAND_ACK"}
+    messages = {dialect.MAVLink_command_ack_message.msgname}
     for message in messages:
         message_white_list.add(message)
         message_black_list.discard(message)
@@ -672,7 +672,7 @@ def post_param_set():
     request = flask.request.json
 
     # adjust message white and black lists
-    messages = {"PARAM_VALUE"}
+    messages = {dialect.MAVLink_param_value_message.msgname}
     for message in messages:
         message_white_list.add(message)
         message_black_list.discard(message)
@@ -721,7 +721,10 @@ def post_plan():
     request = flask.request.json
 
     # adjust message white and black lists
-    messages = {"MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "MISSION_REQUEST"}
+    messages = {dialect.MAVLink_mission_count_message.msgname,
+                dialect.MAVLink_mission_item_int_message.msgname,
+                dialect.MAVLink_mission_ack_message.msgname,
+                dialect.MAVLink_mission_request_message.msgname}
     for message in messages:
         message_white_list.add(message)
         message_black_list.discard(message)
@@ -803,7 +806,8 @@ def post_rally():
     request = flask.request.json
 
     # adjust message white and black lists
-    messages = {"RALLY_POINT", "PARAM_VALUE"}
+    messages = {dialect.MAVLink_rally_point_message.msgname,
+                dialect.MAVLink_param_value_message.msgname}
     for message in messages:
         message_white_list.add(message)
         message_black_list.discard(message)
@@ -914,7 +918,8 @@ def post_fence():
     request = flask.request.json
 
     # adjust message white and black lists
-    messages = {"FENCE_POINT", "PARAM_VALUE"}
+    messages = {dialect.MAVLink_fence_point_message.msgname,
+                dialect.MAVLink_param_value_message.msgname}
     for message in messages:
         message_white_list.add(message)
         message_black_list.discard(message)
@@ -1122,8 +1127,14 @@ def receive_telemetry(master, timeout, drop, rate,
         drop = None
 
     # create message white list set used in non-periodic parameter and flight plan related messages
-    message_white_list = {"PARAM_VALUE", "MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "MISSION_REQUEST",
-                          "FENCE_POINT", "RALLY_POINT", "HOME_POSITION"}
+    message_white_list = {dialect.MAVLink_param_value_message.msgname,
+                          dialect.MAVLink_mission_count_message.msgname,
+                          dialect.MAVLink_mission_item_int_message.msgname,
+                          dialect.MAVLink_mission_ack_message.msgname,
+                          dialect.MAVLink_mission_request_message.msgname,
+                          dialect.MAVLink_fence_point_message.msgname,
+                          dialect.MAVLink_rally_point_message.msgname,
+                          dialect.MAVLink_home_position_message.msgname}
 
     # parse message white list based on user requirements
     if white_message != "":
@@ -1145,22 +1156,25 @@ def receive_telemetry(master, timeout, drop, rate,
     # user did not request to populate parameter values
     if not param:
         # add parameter value message to black list
-        message_black_list |= {"PARAM_VALUE"}
+        message_black_list |= {dialect.MAVLink_param_value_message.msgname}
 
     # user did not request to populate flight plan items
     if not plan:
         # add flight plan related messages to black list
-        message_black_list |= {"MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "MISSION_REQUEST"}
+        message_black_list |= {dialect.MAVLink_mission_count_message.msgname,
+                               dialect.MAVLink_mission_item_int_message.msgname,
+                               dialect.MAVLink_mission_ack_message.msgname,
+                               dialect.MAVLink_mission_request_message.msgname}
 
     # user did not request to populate fence
     if not fence:
         # add fence related messages to black list
-        message_black_list |= {"FENCE_POINT"}
+        message_black_list |= {dialect.MAVLink_fence_point_message.msgname}
 
     # user did not request to populate rally
     if not rally:
         # add rally related messages to black list
-        message_black_list |= {"RALLY_POINT"}
+        message_black_list |= {dialect.MAVLink_rally_point_message.msgname}
 
     # infinite connection loop
     while True:
@@ -1175,13 +1189,13 @@ def receive_telemetry(master, timeout, drop, rate,
         if home:
 
             # adjust message white and black lists
-            messages = {"HOME_POSITION"}
+            messages = {dialect.MAVLink_home_position_message.msgname}
             for message in messages:
                 message_white_list.add(message)
                 message_black_list.discard(message)
 
-            # add home position message interval request
-            request["242"] = 0.2
+            # add home position message interval request at 0.2 Hz
+            request[f"{dialect.MAVLink_home_position_message.id}"] = 0.2
 
         # need to get heartbeat
         if param or plan or rate > 0 or reset or request != {}:
@@ -1373,14 +1387,14 @@ def receive_telemetry(master, timeout, drop, rate,
                     message_data[message_name]["statistics"]["average_frequency"] = average_frequency
 
             # message contains the home location
-            if message_name == "HOME_POSITION":
+            if message_name == dialect.MAVLink_home_position_message.msgname:
 
                 # stop requesting home position from vehicle
                 vehicle.mav.command_long_send(target_system=vehicle.target_system,
                                               target_component=vehicle.target_component,
                                               command=dialect.MAV_CMD_SET_MESSAGE_INTERVAL,
                                               confirmation=0,
-                                              param1=242,
+                                              param1=dialect.MAVLink_home_position_message.id,
                                               param2=-1,
                                               param3=0,
                                               param4=0,
@@ -1392,7 +1406,7 @@ def receive_telemetry(master, timeout, drop, rate,
                 continue
 
             # message that request a plan item
-            if message_name == "MISSION_REQUEST":
+            if message_name == dialect.MAVLink_mission_request_message.msgname:
 
                 # check if this message requests a plan item
                 if message_dict["mission_type"] == dialect.MAV_MISSION_TYPE_MISSION:
@@ -1432,7 +1446,7 @@ def receive_telemetry(master, timeout, drop, rate,
                 continue
 
             # message contains a parameter value
-            if message_name == "PARAM_VALUE":
+            if message_name == dialect.MAVLink_param_value_message.msgname:
 
                 # do not proceed if parameter is in the black list
                 if message_dict["param_id"] in parameter_black_list:
@@ -1526,7 +1540,7 @@ def receive_telemetry(master, timeout, drop, rate,
                         break
 
             # message means flight plan on the vehicle has changed
-            if message_name == "MISSION_ACK":
+            if message_name == dialect.MAVLink_mission_ack_message.msgname:
 
                 # mission plan is accepted and this acknowledgement is for flight plan
                 if message_dict["mission_type"] == dialect.MAV_MISSION_TYPE_MISSION and \
@@ -1543,7 +1557,7 @@ def receive_telemetry(master, timeout, drop, rate,
                 continue
 
             # message contains total flight plan items on the vehicle
-            if message_name == "MISSION_COUNT":
+            if message_name == dialect.MAVLink_mission_count_message.msgname:
 
                 # check this count is for flight plan
                 if message_dict["mission_type"] == 0:
@@ -1559,7 +1573,7 @@ def receive_telemetry(master, timeout, drop, rate,
                 continue
 
             # message contains a flight plan item
-            if message_name == "MISSION_ITEM_INT":
+            if message_name == dialect.MAVLink_mission_item_int_message.msgname:
 
                 # check this flight plan command was not populated before
                 if message_dict["seq"] not in plan_count:
@@ -1600,7 +1614,7 @@ def receive_telemetry(master, timeout, drop, rate,
                         break
 
             # message contains a fence item
-            if message_name == "FENCE_POINT":
+            if message_name == dialect.MAVLink_fence_point_message.msgname:
 
                 # check this fence item was not populated before
                 if message_dict["idx"] not in fence_count:
@@ -1641,7 +1655,7 @@ def receive_telemetry(master, timeout, drop, rate,
                         break
 
             # message contains a rally item
-            if message_name == "RALLY_POINT":
+            if message_name == dialect.MAVLink_rally_point_message.msgname:
 
                 # check this rally item was not populated before
                 if message_dict["idx"] not in rally_count:
