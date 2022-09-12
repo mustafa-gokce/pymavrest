@@ -1100,7 +1100,7 @@ def page_not_found(error):
 # connect to vehicle and parse messages
 def receive_telemetry(master, timeout, drop, rate,
                       white_message, black_message, white_parameter, black_parameter,
-                      param, plan, fence, rally, reset, request):
+                      param, plan, fence, rally, reset, request, home):
     # get global variables
     global message_white_list, message_black_list
     global parameter_white_list, parameter_black_list
@@ -1123,7 +1123,7 @@ def receive_telemetry(master, timeout, drop, rate,
 
     # create message white list set used in non-periodic parameter and flight plan related messages
     message_white_list = {"PARAM_VALUE", "MISSION_COUNT", "MISSION_ITEM_INT", "MISSION_ACK", "MISSION_REQUEST",
-                          "FENCE_POINT", "RALLY_POINT"}
+                          "FENCE_POINT", "RALLY_POINT", "HOME_POSITION"}
 
     # parse message white list based on user requirements
     if white_message != "":
@@ -1170,6 +1170,18 @@ def receive_telemetry(master, timeout, drop, rate,
 
         # connect to vehicle
         vehicle = utility.mavlink_connection(device=master)
+
+        # user requested to populate home
+        if home:
+
+            # adjust message white and black lists
+            messages = {"HOME_POSITION"}
+            for message in messages:
+                message_white_list.add(message)
+                message_black_list.discard(message)
+
+            # add home position message interval request
+            request["242"] = 0.2
 
         # need to get heartbeat
         if param or plan or rate > 0 or reset or request != {}:
@@ -1359,6 +1371,25 @@ def receive_telemetry(master, timeout, drop, rate,
                     message_data[message_name]["statistics"]["duration"] = duration
                     message_data[message_name]["statistics"]["instant_frequency"] = instant_frequency
                     message_data[message_name]["statistics"]["average_frequency"] = average_frequency
+
+            # message contains the home location
+            if message_name == "HOME_POSITION":
+
+                # stop requesting home position from vehicle
+                vehicle.mav.command_long_send(target_system=vehicle.target_system,
+                                              target_component=vehicle.target_component,
+                                              command=dialect.MAV_CMD_SET_MESSAGE_INTERVAL,
+                                              confirmation=0,
+                                              param1=242,
+                                              param2=-1,
+                                              param3=0,
+                                              param4=0,
+                                              param5=0,
+                                              param6=0,
+                                              param7=0)
+
+                # do not proceed further
+                continue
 
             # message that request a plan item
             if message_name == "MISSION_REQUEST":
@@ -1692,11 +1723,13 @@ def receive_telemetry(master, timeout, drop, rate,
               help="User-defined custom key-value pairs.")
 @click.option("--request", default="", type=click.STRING, required=False,
               help="Request non-default message streams with frequency.")
-@click.option("--statistics", default=False, type=click.BOOL, required=False,
+@click.option("--statistics", default=True, type=click.BOOL, required=False,
               help="Hold statistics.")
+@click.option("--home", default=True, type=click.BOOL, required=False,
+              help="Request home.")
 def main(host, port, master, timeout, drop, rate,
          white_message, black_message, white_parameter, black_parameter,
-         param, plan, fence, rally, reset, custom, request, statistics):
+         param, plan, fence, rally, reset, custom, request, statistics, home):
     # get global variables
     global custom_data, hold_statistics
 
@@ -1722,7 +1755,7 @@ def main(host, port, master, timeout, drop, rate,
     # start telemetry receiver thread
     threading.Thread(target=receive_telemetry, args=(master, timeout, drop, rate,
                                                      white_message, black_message, white_parameter, black_parameter,
-                                                     param, plan, fence, rally, reset, request)).start()
+                                                     param, plan, fence, rally, reset, request, home)).start()
 
     # create server
     server = gevent.pywsgi.WSGIServer(listener=(host, port), application=application, log=application.logger)
