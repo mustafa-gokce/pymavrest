@@ -448,7 +448,7 @@ curl -i -X POST -H "Content-Type: application/json" -d '[ { "target_system": 0, 
 ### Advanced run and query
 
 ```bash
-/usr/bin/python3 pymavrest.py --host="127.0.0.1" --port=2609 --master="udpin:127.0.0.1:14550" --timeout=5.0 --drop=5.0 --rate=4 --white_message="GLOBAL_POSITION_INT,ATTITUDE,VFR_HUD" --black_message="VFR_HUD" --param=True --plan=True --fence=True --rally=True --reset=True --custom='{"pi": 3.14}' --request='{"245": 5}' --white_parameter="SYSID_THISMAV,SYSID_MYGCS" --black_parameter="SYSID_MYGCS" --statistics=True
+/usr/bin/python3 pymavrest.py --host="127.0.0.1" --port=2609 --master="udpin:127.0.0.1:14550" --timeout=5.0 --drop=5.0 --rate=4 --white_message="GLOBAL_POSITION_INT,ATTITUDE,VFR_HUD" --black_message="VFR_HUD" --param=True --plan=True --fence=True --rally=True --reset=True --custom='{"pi": 3.14}' --request='{"245": 5}' --white_parameter="SYSID_THISMAV,SYSID_MYGCS" --black_parameter="SYSID_MYGCS" --statistics=True --home=True
 ```
 
 ```bash
@@ -523,4 +523,5 @@ curl http://127.0.0.1:2609/get/message/all
 | reset           | bool  | False                   | Reset on-board vehicle statistics on start                                                    |
 | custom          | str   | ""                      | User-defined custom key-value pairs                                                           |
 | request         | str   | ""                      | Request non-default message streams with frequency                                            |
-| statistics      | bool  | False                   | Enable statistics                                                                             |
+| statistics      | bool  | True                    | Enable statistics                                                                             |
+| home            | bool  | True                    | Request home                                                                                  |
