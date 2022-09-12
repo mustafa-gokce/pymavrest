@@ -808,6 +808,12 @@ def post_rally():
         message_white_list.add(message)
         message_black_list.discard(message)
 
+    # adjust parameter white and black lists
+    parameters = {"RALLY_TOTAL"}
+    for parameter in parameters:
+        parameter_white_list.add(parameter)
+        parameter_black_list.discard(parameter)
+
     # create response and add vehicle presence to response
     response = {"command": "POST_RALLY", "connected": vehicle_connected, "valid": False, "sent": False}
 
@@ -920,7 +926,7 @@ def post_fence():
         message_black_list.discard(message)
 
     # adjust parameter white and black lists
-    parameters = {"FENCE_ACTION"}
+    parameters = {"FENCE_ACTION", "FENCE_TOTAL"}
     for parameter in parameters:
         parameter_white_list.add(parameter)
         parameter_black_list.discard(parameter)
