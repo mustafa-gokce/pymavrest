@@ -7,6 +7,7 @@ gevent.monkey.patch_all()
 
 import time
 import threading
+import enum
 import click
 import pymavlink.mavutil as utility
 import pymavlink.dialects.v20.all as dialect
@@ -15,6 +16,22 @@ import flask
 import json
 import jsonschema
 import flask_cors
+
+
+# Message name enumeration
+class Message(enum.Enum):
+    BAD_DATA = "BAD_DATA"
+    UNKNOWN = "UNKNOWN"
+
+
+# Parameter name enumeration
+class Parameter(enum.Enum):
+    RALLY_TOTAL = "RALLY_TOTAL"
+    FENCE_ACTION = "FENCE_ACTION"
+    FENCE_TOTAL = "FENCE_TOTAL"
+    STAT_RESET = "STAT_RESET"
+    SYSID_THISMAV = "SYSID_THISMAV"
+
 
 # create a flask application
 application = flask.Flask(import_name="pymavrest")
@@ -813,7 +830,7 @@ def post_rally():
         message_black_list.discard(message)
 
     # adjust parameter white and black lists
-    parameters = {"RALLY_TOTAL"}
+    parameters = {Parameter.RALLY_TOTAL.value}
     for parameter in parameters:
         parameter_white_list.add(parameter)
         parameter_black_list.discard(parameter)
@@ -878,14 +895,14 @@ def post_rally():
         # send clear rally item count to the vehicle
         vehicle.mav.param_set_send(target_system=vehicle.target_system,
                                    target_component=vehicle.target_component,
-                                   param_id=bytes("RALLY_TOTAL".encode("utf8")),
+                                   param_id=bytes(Parameter.RALLY_TOTAL.value.encode("utf8")),
                                    param_value=0,
                                    param_type=dialect.MAV_PARAM_TYPE_REAL32)
 
         # send rally item count to the vehicle
         vehicle.mav.param_set_send(target_system=vehicle.target_system,
                                    target_component=vehicle.target_component,
-                                   param_id=bytes("RALLY_TOTAL".encode("utf8")),
+                                   param_id=bytes(Parameter.RALLY_TOTAL.encode("utf8")),
                                    param_value=len(send_rally_data),
                                    param_type=dialect.MAV_PARAM_TYPE_REAL32)
 
@@ -931,16 +948,17 @@ def post_fence():
         message_black_list.discard(message)
 
     # adjust parameter white and black lists
-    parameters = {"FENCE_ACTION", "FENCE_TOTAL"}
+    parameters = {Parameter.FENCE_ACTION.value,
+                  Parameter.FENCE_TOTAL.value}
     for parameter in parameters:
         parameter_white_list.add(parameter)
         parameter_black_list.discard(parameter)
 
     # request fence action parameter if not exits
-    if "FENCE_ACTION" not in parameter_data.keys():
+    if Parameter.FENCE_ACTION.value not in parameter_data.keys():
         vehicle.mav.param_request_read_send(target_system=vehicle.target_system,
                                             target_component=vehicle.target_component,
-                                            param_id=bytes("FENCE_ACTION".encode("utf8")),
+                                            param_id=bytes(Parameter.FENCE_ACTION.value.encode("utf8")),
                                             param_index=0)
 
     # create response and add vehicle presence to response
@@ -1003,7 +1021,7 @@ def post_fence():
             response["valid"] = False
 
     # check fence action parameter exits
-    response["connected"] = "FENCE_ACTION" in parameter_data.keys()
+    response["connected"] = Parameter.FENCE_ACTION.value in parameter_data.keys()
 
     # check vehicle connection and message validation
     if response["connected"] and response["valid"]:
@@ -1011,26 +1029,26 @@ def post_fence():
         send_fence_data = request
 
         # get fence action
-        fence_action = parameter_data["FENCE_ACTION"]["value"]
+        fence_action = parameter_data[Parameter.FENCE_ACTION.value]["value"]
 
         # disable fence action
         vehicle.mav.param_set_send(target_system=vehicle.target_system,
                                    target_component=vehicle.target_component,
-                                   param_id=bytes("FENCE_ACTION".encode("utf8")),
+                                   param_id=bytes(Parameter.FENCE_ACTION.value.encode("utf8")),
                                    param_value=dialect.FENCE_ACTION_NONE,
                                    param_type=dialect.MAV_PARAM_TYPE_REAL32)
 
         # send clear fence item count to the vehicle
         vehicle.mav.param_set_send(target_system=vehicle.target_system,
                                    target_component=vehicle.target_component,
-                                   param_id=bytes("FENCE_TOTAL".encode("utf8")),
+                                   param_id=bytes(Parameter.FENCE_TOTAL.value.encode("utf8")),
                                    param_value=0,
                                    param_type=dialect.MAV_PARAM_TYPE_REAL32)
 
         # send fence item count to the vehicle
         vehicle.mav.param_set_send(target_system=vehicle.target_system,
                                    target_component=vehicle.target_component,
-                                   param_id=bytes("FENCE_TOTAL".encode("utf8")),
+                                   param_id=bytes(Parameter.FENCE_TOTAL.value.encode("utf8")),
                                    param_value=len(send_fence_data),
                                    param_type=dialect.MAV_PARAM_TYPE_REAL32)
 
@@ -1047,7 +1065,7 @@ def post_fence():
         # enable fence action
         vehicle.mav.param_set_send(target_system=vehicle.target_system,
                                    target_component=vehicle.target_component,
-                                   param_id=bytes("FENCE_ACTION".encode("utf8")),
+                                   param_id=bytes(Parameter.FENCE_ACTION.value.encode("utf8")),
                                    param_value=fence_action,
                                    param_type=dialect.MAV_PARAM_TYPE_REAL32)
 
@@ -1150,7 +1168,7 @@ def receive_telemetry(master, timeout, drop, rate,
     message_black_list = set() if black_message == "" else {x for x in black_message.replace(" ", "").split(",")}
 
     # create parameter white list
-    parameter_white_list = {"FENCE_ACTION"}
+    parameter_white_list = {Parameter.FENCE_ACTION.value}
 
     # parse parameter white list based on user requirements
     if white_parameter != "":
@@ -1216,7 +1234,7 @@ def receive_telemetry(master, timeout, drop, rate,
             # send parameter set message to the vehicle
             vehicle.mav.param_set_send(target_system=vehicle.target_system,
                                        target_component=vehicle.target_component,
-                                       param_id=bytes("STAT_RESET".encode("utf8")),
+                                       param_id=bytes(Parameter.STAT_RESET.value.encode("utf8")),
                                        param_value=0,
                                        param_type=dialect.MAV_PARAM_TYPE_REAL32)
 
@@ -1336,11 +1354,11 @@ def receive_telemetry(master, timeout, drop, rate,
                 continue
 
             # discard bad data
-            if message_name == "BAD_DATA":
+            if message_name == Message.BAD_DATA.value:
                 continue
 
             # discard unknown messages
-            if message_name.startswith("UNKNOWN"):
+            if message_name.startswith(Message.UNKNOWN.value):
                 continue
 
             # create a message field in message data if this ordinary message not populated before
@@ -1394,7 +1412,6 @@ def receive_telemetry(master, timeout, drop, rate,
 
             # message contains the home location
             if message_name == dialect.MAVLink_home_position_message.msgname:
-
                 # stop requesting home position from vehicle
                 vehicle.mav.command_long_send(target_system=vehicle.target_system,
                                               target_component=vehicle.target_component,
@@ -1512,7 +1529,7 @@ def receive_telemetry(master, timeout, drop, rate,
                         parameter_data[message_dict["param_id"]]["statistics"]["average_frequency"] = average_frequency
 
                 # update fence count
-                if message_dict["param_id"] == "FENCE_TOTAL":
+                if message_dict["param_id"] == Parameter.FENCE_TOTAL.value:
                     # clear fence related variables
                     fence_data = []
                     fence_count = set()
@@ -1522,7 +1539,7 @@ def receive_telemetry(master, timeout, drop, rate,
                     vehicle.mav.fence_fetch_point_send(vehicle.target_system, vehicle.target_component, 0)
 
                 # update rally count
-                elif message_dict["param_id"] == "RALLY_TOTAL":
+                elif message_dict["param_id"] == Parameter.RALLY_TOTAL.value:
                     # clear rally related variables
                     rally_data = []
                     rally_count = set()
@@ -1532,7 +1549,7 @@ def receive_telemetry(master, timeout, drop, rate,
                     vehicle.mav.rally_fetch_point_send(vehicle.target_system, vehicle.target_component, 0)
 
                 # update system id
-                elif message_dict["param_id"] == "SYSID_THISMAV":
+                elif message_dict["param_id"] == Parameter.SYSID_THISMAV.value:
                     vehicle.source_system = int(message_dict["param_value"])
 
                 # do not proceed further
