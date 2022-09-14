@@ -1458,6 +1458,12 @@ def receive_telemetry(master, timeout, drop, rate,
             # message contains a parameter value
             if message_name == dialect.MAVLink_param_value_message.msgname:
 
+                # update total parameter count
+                parameter_count_total = message_dict["param_count"]
+
+                # add parameter index to parameter count list to not request this parameter value again
+                parameter_count.add(message_dict["param_index"])
+
                 # do not proceed if parameter is in the black list
                 if message_dict["param_id"] in parameter_black_list:
                     continue
@@ -1472,12 +1478,6 @@ def receive_telemetry(master, timeout, drop, rate,
 
                 # get the parameter value
                 parameter_data[message_dict["param_id"]]["value"] = message_dict["param_value"]
-
-                # update total parameter count
-                parameter_count_total = message_dict["param_count"]
-
-                # add parameter index to parameter count list to not request this parameter value again
-                parameter_count.add(message_dict["param_index"])
 
                 # user requested to hold statistics
                 if hold_statistics:
