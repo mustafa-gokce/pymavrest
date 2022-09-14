@@ -1172,6 +1172,9 @@ def receive_telemetry(master, timeout, drop, rate,
 
     # create parameter white list
     parameter_white_list = {Parameter.FENCE_ACTION.value,
+                            Parameter.FENCE_TOTAL.value,
+                            Parameter.RALLY_TOTAL.value,
+                            Parameter.SYSID_THISMAV.value,
                             Parameter.STAT_BOOTCNT.value,
                             Parameter.STAT_FLTTIME.value,
                             Parameter.STAT_RESET.value,
@@ -1183,29 +1186,6 @@ def receive_telemetry(master, timeout, drop, rate,
 
     # parse parameter black list based on user requirements
     parameter_black_list = set() if black_parameter == "" else {x for x in black_parameter.replace(" ", "").split(",")}
-
-    # user did not request to populate parameter values
-    if not param:
-        # add parameter value message to black list
-        message_black_list |= {dialect.MAVLink_param_value_message.msgname}
-
-    # user did not request to populate flight plan items
-    if not plan:
-        # add flight plan related messages to black list
-        message_black_list |= {dialect.MAVLink_mission_count_message.msgname,
-                               dialect.MAVLink_mission_item_int_message.msgname,
-                               dialect.MAVLink_mission_ack_message.msgname,
-                               dialect.MAVLink_mission_request_message.msgname}
-
-    # user did not request to populate fence
-    if not fence:
-        # add fence related messages to black list
-        message_black_list |= {dialect.MAVLink_fence_point_message.msgname}
-
-    # user did not request to populate rally
-    if not rally:
-        # add rally related messages to black list
-        message_black_list |= {dialect.MAVLink_rally_point_message.msgname}
 
     # infinite connection loop
     while True:
