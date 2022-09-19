@@ -130,7 +130,7 @@ schema_key_value = {
     "type": "object",
     "properties": {
         "key": {"type": "string"},
-        "value": {"type": ["number", "string", "boolean", "null"]}
+        "value": {"type": ["number", "string", "boolean", "null", "array", "object"]}
     },
     "required": ["key", "value"]
 }
