@@ -1266,14 +1266,18 @@ def receive_telemetry(master, timeout, drop, rate,
             # request flight plan from vehicle
             vehicle.mav.mission_request_list_send(vehicle.target_system, vehicle.target_component)
 
+        # get monotonic timestamp for timeout
+        last_message_monotonic = time.monotonic()
+
         # infinite message parsing loop
         while True:
 
-            # wait a message from vehicle until specified timeout
-            message_raw = vehicle.recv_match(blocking=True, timeout=timeout)
+            # get timestamps
+            time_monotonic = time.monotonic()
+            time_now = time.time()
 
-            # do not proceed to message parsing if no message received from vehicle within specified time
-            if not message_raw:
+            # check timeout should occur or not
+            if time_monotonic - last_message_monotonic > timeout:
                 # reset connection flag
                 vehicle_connected = False
 
@@ -1283,12 +1287,22 @@ def receive_telemetry(master, timeout, drop, rate,
                 # break the inner loop
                 break
 
+            # wait a message from vehicle until specified timeout
+            message_raw = vehicle.recv_msg()
+
+            # do not proceed to message parsing if no message received from vehicle within specified time
+            if message_raw is None:
+                # cool down the message receiving
+                time.sleep(0.01)
+
+                # continue to next step of the loop
+                continue
+
+            # update monotonic timestamp for timeout
+            last_message_monotonic = time_monotonic
+
             # set connection flag
             vehicle_connected = True
-
-            # get timestamps
-            time_monotonic = time.monotonic()
-            time_now = time.time()
 
             # user requested to hold statistics
             if hold_statistics:
