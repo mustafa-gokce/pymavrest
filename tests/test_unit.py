@@ -133,6 +133,12 @@ class EndpointsReachableTest(unittest.TestCase):
         data = requests.post(url=link, json=json.load(open("../samples/post_fence.json")))
         self.assertEqual(data.json(), json.load(open("../samples/post_fence_response.json")))
 
+    def test_post_message(self):
+        global IP, PORT
+        link = f"http://{IP}:{PORT}/post/message"
+        data = requests.post(url=link, json=json.load(open("../samples/post_message.json")))
+        self.assertEqual(data.json(), json.load(open("../samples/post_message_response.json")))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -445,6 +445,20 @@ curl -i -X POST -H "Content-Type: application/json" -d '[ { "target_system": 0, 
 }
 ```
 
+#### Send a message to vehicle
+
+```bash
+curl -i -X POST -H "Content-Type: application/json" -d '{"message_name": "MISSION_ITEM_INT", "message_content": [0, 0, 0, 6, 16, 2, 0, 0, 0, 0, 0, -353612986, 1491611332, 50.0]}' http://127.0.0.1:2609/post/message
+```
+
+```json
+{
+  "command": "POST_MESSAGE",
+  "sent": true,
+  "valid": true
+}
+```
+
 ### Advanced run and query
 
 ```bash

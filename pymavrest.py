@@ -207,6 +207,16 @@ schema_fence = {
     "maxItems": 256
 }
 
+# message upload schema for validation
+schema_message = {
+    "type": "object",
+    "properties": {
+        "message_name": {"type": "string"},
+        "message_content": {"type": "array", "items": {"type": "number"}}
+    },
+    "required": ["message_name", "message_content"]
+}
+
 
 # get all data
 @application.route(rule="/get/all", methods=["GET"])
@@ -1117,6 +1127,56 @@ def post_key_value_pair():
 
         # message sent to api
         response["sent"] = True
+
+    # expose the response
+    return flask.jsonify(response)
+
+
+# send a message to vehicle
+@application.route(rule="/post/message", methods=["POST"])
+def post_message():
+    # get global variables
+    global schema_message, vehicle
+
+    # get the request
+    request = flask.request.json
+
+    # create response
+    response = {"command": "POST_MESSAGE", "valid": False, "sent": False}
+
+    # try to validate the request
+    try:
+
+        # validate the request
+        jsonschema.validate(instance=request, schema=schema_message)
+
+        # validation is successful
+        response["valid"] = True
+
+    # instance is invalid
+    except jsonschema.exceptions.ValidationError:
+        pass
+
+    # check message validation
+    if response["valid"]:
+
+        # try to get the message method from the vehicle
+        try:
+
+            # get the message method from the vehicle
+            method = getattr(vehicle.mav, f'{request["message_name"].lower()}_send')
+
+            # use the message method to send the message to the vehicle
+            method(*request["message_content"])
+
+            # message sent to vehicle
+            response["sent"] = True
+
+        # message method does not exist
+        except Exception as e:
+
+            # unset message validation
+            response["valid"] = False
 
     # expose the response
     return flask.jsonify(response)
