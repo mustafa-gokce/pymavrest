@@ -1132,6 +1132,40 @@ def post_key_value_pair():
     return flask.jsonify(response)
 
 
+# post dictionary to api
+@application.route(rule="/post/custom/all", methods=["POST"])
+def post_custom_all():
+    # get global variables
+    global custom_data
+
+    # get the request
+    request = flask.request.json
+
+    # create response
+    response = {"command": "POST_CUSTOM_ALL", "valid": False, "sent": False}
+
+    # try to validate the request
+    if isinstance(request, dict):
+        # validation is successful
+        response["valid"] = True
+
+    # check key is not equal to string all
+    if response["valid"]:
+        if "all" in request.keys():
+            response["valid"] = False
+
+    # check message validation
+    if response["valid"]:
+        # update custom data
+        custom_data = {**custom_data, **request}
+
+        # message sent to api
+        response["sent"] = True
+
+    # expose the response
+    return flask.jsonify(response)
+
+
 # send a message to vehicle
 @application.route(rule="/post/message", methods=["POST"])
 def post_message():
