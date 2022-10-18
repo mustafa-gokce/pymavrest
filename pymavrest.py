@@ -5,6 +5,7 @@ import gevent.monkey
 # patch the modules for asynchronous work
 gevent.monkey.patch_all()
 
+import os
 import time
 import threading
 import enum
@@ -16,6 +17,9 @@ import flask
 import json
 import jsonschema
 import flask_cors
+
+# always use MAVLink 2.0
+os.environ["MAVLINK20"] = "1"
 
 
 # Message name enumeration
