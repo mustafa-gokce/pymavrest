@@ -1660,20 +1660,6 @@ def receive_telemetry(master, timeout, drop, rate,
                 # check this flight plan command was not populated before
                 if message_dict["seq"] not in plan_count:
 
-                    # user requested to hold statistics
-                    if hold_statistics:
-                        # initiate statistics data for this flight plan command
-                        message_dict["statistics"] = {}
-                        message_dict["statistics"]["counter"] = 1
-                        message_dict["statistics"]["latency"] = 0
-                        message_dict["statistics"]["first"] = time_now
-                        message_dict["statistics"]["first_monotonic"] = time_monotonic
-                        message_dict["statistics"]["last"] = time_now
-                        message_dict["statistics"]["last_monotonic"] = time_monotonic
-                        message_dict["statistics"]["duration"] = 0
-                        message_dict["statistics"]["instant_frequency"] = 0
-                        message_dict["statistics"]["average_frequency"] = 0
-
                     # add flight plan command to plan data
                     plan_data.append(message_dict)
 
@@ -1701,20 +1687,6 @@ def receive_telemetry(master, timeout, drop, rate,
                 # check this fence item was not populated before
                 if message_dict["idx"] not in fence_count:
 
-                    # user requested to hold statistics
-                    if hold_statistics:
-                        # initiate statistics data for this fence item
-                        message_dict["statistics"] = {}
-                        message_dict["statistics"]["counter"] = 1
-                        message_dict["statistics"]["latency"] = 0
-                        message_dict["statistics"]["first"] = time_now
-                        message_dict["statistics"]["first_monotonic"] = time_monotonic
-                        message_dict["statistics"]["last"] = time_now
-                        message_dict["statistics"]["last_monotonic"] = time_monotonic
-                        message_dict["statistics"]["duration"] = 0
-                        message_dict["statistics"]["instant_frequency"] = 0
-                        message_dict["statistics"]["average_frequency"] = 0
-
                     # add fence item to fence data
                     fence_data.append(message_dict)
 
@@ -1741,20 +1713,6 @@ def receive_telemetry(master, timeout, drop, rate,
 
                 # check this rally item was not populated before
                 if message_dict["idx"] not in rally_count:
-
-                    # user requested to hold statistics
-                    if hold_statistics:
-                        # initiate statistics data for this rally item
-                        message_dict["statistics"] = {}
-                        message_dict["statistics"]["counter"] = 1
-                        message_dict["statistics"]["latency"] = 0
-                        message_dict["statistics"]["first"] = time_now
-                        message_dict["statistics"]["first_monotonic"] = time_monotonic
-                        message_dict["statistics"]["last"] = time_now
-                        message_dict["statistics"]["last_monotonic"] = time_monotonic
-                        message_dict["statistics"]["duration"] = 0
-                        message_dict["statistics"]["instant_frequency"] = 0
-                        message_dict["statistics"]["average_frequency"] = 0
 
                     # add rally item to rally data
                     rally_data.append(message_dict)
