@@ -1046,7 +1046,7 @@ def post_fence():
         send_fence_data = request
 
         # get fence action
-        fence_action = parameter_data[Parameter.FENCE_ACTION.value]["value"]
+        fence_action = parameter_data[Parameter.FENCE_ACTION.value]
 
         # disable fence action
         vehicle.mav.param_set_send(target_system=vehicle.target_system,
@@ -1584,48 +1584,8 @@ def receive_telemetry(master, timeout, drop, rate,
                 if len(white_parameter) > 1 and message_dict["param_id"] not in parameter_white_list:
                     continue
 
-                # create a parameter space to parameter data if not exist
-                if message_dict["param_id"] not in parameter_data.keys():
-                    parameter_data[message_dict["param_id"]] = {}
-
                 # get the parameter value
-                parameter_data[message_dict["param_id"]]["value"] = message_dict["param_value"]
-
-                # user requested to hold statistics
-                if hold_statistics:
-
-                    # this parameter is populated for the first time
-                    if "statistics" not in parameter_data[message_dict["param_id"]].keys():
-
-                        # initiate statistics data for this parameter
-                        parameter_data[message_dict["param_id"]]["statistics"] = {}
-                        parameter_data[message_dict["param_id"]]["statistics"]["counter"] = 1
-                        parameter_data[message_dict["param_id"]]["statistics"]["latency"] = 0
-                        parameter_data[message_dict["param_id"]]["statistics"]["first"] = time_now
-                        parameter_data[message_dict["param_id"]]["statistics"]["first_monotonic"] = time_monotonic
-                        parameter_data[message_dict["param_id"]]["statistics"]["last"] = time_now
-                        parameter_data[message_dict["param_id"]]["statistics"]["last_monotonic"] = time_monotonic
-                        parameter_data[message_dict["param_id"]]["statistics"]["duration"] = 0
-                        parameter_data[message_dict["param_id"]]["statistics"]["instant_frequency"] = 0
-                        parameter_data[message_dict["param_id"]]["statistics"]["average_frequency"] = 0
-
-                    # this parameter was populated before
-                    else:
-
-                        # update statistics data for this parameter
-                        parameter_data[message_dict["param_id"]]["statistics"]["counter"] += 1
-                        latency = time_monotonic - parameter_data[message_dict["param_id"]]["statistics"]["last_monotonic"]
-                        first_monotonic = parameter_data[message_dict["param_id"]]["statistics"]["first_monotonic"]
-                        duration = time_monotonic - first_monotonic
-                        instant_frequency = 1.0 / latency if latency != 0.0 else 0.0
-                        counter = parameter_data[message_dict["param_id"]]["statistics"]["counter"]
-                        average_frequency = counter / duration if duration != 0.0 else 0.0
-                        parameter_data[message_dict["param_id"]]["statistics"]["latency"] = latency
-                        parameter_data[message_dict["param_id"]]["statistics"]["last"] = time_now
-                        parameter_data[message_dict["param_id"]]["statistics"]["last_monotonic"] = time_monotonic
-                        parameter_data[message_dict["param_id"]]["statistics"]["duration"] = duration
-                        parameter_data[message_dict["param_id"]]["statistics"]["instant_frequency"] = instant_frequency
-                        parameter_data[message_dict["param_id"]]["statistics"]["average_frequency"] = average_frequency
+                parameter_data[message_dict["param_id"]] = message_dict["param_value"]
 
                 # update fence count
                 if message_dict["param_id"] == Parameter.FENCE_TOTAL.value:
