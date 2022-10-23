@@ -1771,7 +1771,7 @@ def receive_telemetry(master, timeout, drop, rate,
               help="Fetch fence.")
 @click.option("--rally", default=True, type=click.BOOL, required=False,
               help="Fetch rally.")
-@click.option("--reset", default=False, type=click.BOOL, required=False,
+@click.option("--reset", default=True, type=click.BOOL, required=False,
               help="Reset statistics on start.")
 @click.option("--custom", default="", type=click.STRING, required=False,
               help="User-defined custom key-value pairs.")
