@@ -1220,6 +1220,133 @@ def post_message():
     return flask.jsonify(response)
 
 
+# post dictionary to api
+@application.route(rule="/set/<argument>", methods=["POST"])
+def set_argument(argument):
+    # get global variables
+    global message_white_list, message_black_list, message_data
+    global parameter_white_list, parameter_black_list, parameter_data
+
+    # get the request
+    request = flask.request.json
+
+    # create response
+    response = {"command": f"set_{argument}".upper(), "valid": False, "sent": False}
+
+    # check argument is white message list
+    if argument == "white_message":
+
+        # try to validate the request
+        if isinstance(request, list):
+            # validation is successful
+            response["valid"] = True
+
+        # message should not be in helper message class
+        if response["valid"]:
+            default_messages = [message.value for message in Message]
+            for message in request:
+                if message in default_messages:
+                    response["valid"] = False
+                    break
+
+        # check validity
+        if response["valid"]:
+
+            # set white and black message lists
+            for message in request:
+                message_white_list.add(message)
+                message_black_list.discard(message)
+
+            # message sent to api
+            response["sent"] = True
+
+    # check argument is black message list
+    elif argument == "black_message":
+
+        # try to validate the request
+        if isinstance(request, list):
+            # validation is successful
+            response["valid"] = True
+
+        # message should not be in helper message class
+        if response["valid"]:
+            default_messages = [message.value for message in Message]
+            for message in request:
+                if message in default_messages:
+                    response["valid"] = False
+                    break
+
+        # check validity
+        if response["valid"]:
+
+            # set white and black message lists
+            for message in request:
+                message_black_list.add(message)
+                message_white_list.discard(message)
+                del message_data[message]
+
+            # message sent to api
+            response["sent"] = True
+
+    # check argument is white parameter list
+    elif argument == "white_parameter":
+
+        # try to validate the request
+        if isinstance(request, list):
+            # validation is successful
+            response["valid"] = True
+
+        # parameter should not be in helper message class
+        if response["valid"]:
+            default_parameters = [parameter.value for parameter in Parameter]
+            for parameter in request:
+                if parameter in default_parameters:
+                    response["valid"] = False
+                    break
+
+        # check validity
+        if response["valid"]:
+
+            # set white and black parameter lists
+            for parameter in request:
+                parameter_white_list.add(parameter)
+                parameter_black_list.discard(parameter)
+
+            # message sent to api
+            response["sent"] = True
+
+    # check argument is black parameter list
+    elif argument == "black_parameter":
+
+        # try to validate the request
+        if isinstance(request, list):
+            # validation is successful
+            response["valid"] = True
+
+        # parameter should not be in helper message class
+        if response["valid"]:
+            default_parameters = [parameter.value for parameter in Parameter]
+            for parameter in request:
+                if parameter in default_parameters:
+                    response["valid"] = False
+                    break
+
+        # check validity
+        if response["valid"]:
+
+            # set white and black parameter lists
+            for parameter in request:
+                parameter_black_list.add(parameter)
+                parameter_white_list.discard(parameter)
+                del parameter_data[parameter]
+
+            # message sent to api
+            response["sent"] = True
+
+    # expose the response
+    return flask.jsonify(response)
+
+
 # deal with the malicious requests
 @application.errorhandler(code_or_exception=404)
 def page_not_found(error):
