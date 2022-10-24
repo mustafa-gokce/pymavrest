@@ -11,7 +11,6 @@ import threading
 import enum
 import click
 import pymavlink.mavutil as utility
-import pymavlink.dialects.v20.all as dialect
 import gevent.pywsgi
 import flask
 import json
@@ -26,6 +25,15 @@ os.environ["MAVLINK20"] = "1"
 class Message(enum.Enum):
     BAD_DATA = "BAD_DATA"
     UNKNOWN = "UNKNOWN"
+    COMMAND_ACK = "COMMAND_ACK"
+    PARAM_VALUE = "PARAM_VALUE"
+    MISSION_COUNT = "MISSION_COUNT"
+    MISSION_ITEM_INT = "MISSION_ITEM_INT"
+    MISSION_ACK = "MISSION_ACK"
+    MISSION_REQUEST = "MISSION_REQUEST"
+    FENCE_POINT = "FENCE_POINT"
+    RALLY_POINT = "RALLY_POINT"
+    HOME_POSITION = "HOME_POSITION"
 
 
 # Parameter name enumeration
@@ -38,6 +46,18 @@ class Parameter(enum.Enum):
     STAT_FLTTIME = "STAT_FLTTIME"
     STAT_RUNTIME = "STAT_RUNTIME"
     SYSID_THISMAV = "SYSID_THISMAV"
+
+
+# Message ID enumeration
+class MessageID(enum.Enum):
+    HOME_POSITION = 242
+    MAV_MISSION_TYPE_MISSION = 0
+    MAV_PARAM_TYPE_REAL32 = 9
+    FENCE_ACTION_NONE = 0
+    MAV_DATA_STREAM_ALL = 0
+    START_STOP = 1
+    MAV_CMD_SET_MESSAGE_INTERVAL = 511
+    MAV_MISSION_ACCEPTED = 0
 
 
 # create a flask application
@@ -73,6 +93,8 @@ send_fence_data = []
 send_rally_data = []
 statistics_data = {"api": {}, "vehicle": {}}
 hold_statistics = False
+default_message_list_length = len([message for message in Message])
+default_parameter_list_length = len([parameter for parameter in Parameter])
 
 # COMMAND_LONG schema for validation
 schema_command_long = {
@@ -594,7 +616,7 @@ def post_command_long():
     request = flask.request.json
 
     # adjust message white and black lists
-    messages = {dialect.MAVLink_command_ack_message.msgname}
+    messages = {Message.COMMAND_ACK.value}
     for message in messages:
         message_white_list.add(message)
         message_black_list.discard(message)
@@ -649,7 +671,7 @@ def post_command_int():
     request = flask.request.json
 
     # adjust message white and black lists
-    messages = {dialect.MAVLink_command_ack_message.msgname}
+    messages = {Message.COMMAND_ACK.value}
     for message in messages:
         message_white_list.add(message)
         message_black_list.discard(message)
@@ -706,7 +728,7 @@ def post_param_set():
     request = flask.request.json
 
     # adjust message white and black lists
-    messages = {dialect.MAVLink_param_value_message.msgname}
+    messages = {Message.PARAM_VALUE.value}
     for message in messages:
         message_white_list.add(message)
         message_black_list.discard(message)
@@ -755,10 +777,7 @@ def post_plan():
     request = flask.request.json
 
     # adjust message white and black lists
-    messages = {dialect.MAVLink_mission_count_message.msgname,
-                dialect.MAVLink_mission_item_int_message.msgname,
-                dialect.MAVLink_mission_ack_message.msgname,
-                dialect.MAVLink_mission_request_message.msgname}
+    messages = {Message.MISSION_COUNT.value, Message.MISSION_ITEM_INT.value, Message.MISSION_ACK.value, Message.MISSION_REQUEST.value}
     for message in messages:
         message_white_list.add(message)
         message_black_list.discard(message)
@@ -813,13 +832,13 @@ def post_plan():
         # send mission clear all message
         vehicle.mav.mission_clear_all_send(target_system=vehicle.target_system,
                                            target_component=vehicle.target_component,
-                                           mission_type=dialect.MAV_MISSION_TYPE_MISSION)
+                                           mission_type=MessageID.MAV_MISSION_TYPE_MISSION.value)
 
         # send mission write partial list message
         vehicle.mav.mission_count_send(target_system=vehicle.target_system,
                                        target_component=vehicle.target_component,
                                        count=len(request),
-                                       mission_type=dialect.MAV_MISSION_TYPE_MISSION)
+                                       mission_type=MessageID.MAV_MISSION_TYPE_MISSION.value)
 
         # message sent to vehicle
         response["sent"] = True
@@ -840,8 +859,7 @@ def post_rally():
     request = flask.request.json
 
     # adjust message white and black lists
-    messages = {dialect.MAVLink_rally_point_message.msgname,
-                dialect.MAVLink_param_value_message.msgname}
+    messages = {Message.RALLY_POINT.value, Message.PARAM_VALUE.value}
     for message in messages:
         message_white_list.add(message)
         message_black_list.discard(message)
@@ -914,14 +932,14 @@ def post_rally():
                                    target_component=vehicle.target_component,
                                    param_id=bytes(Parameter.RALLY_TOTAL.value.encode("utf8")),
                                    param_value=0,
-                                   param_type=dialect.MAV_PARAM_TYPE_REAL32)
+                                   param_type=MessageID.MAV_PARAM_TYPE_REAL32.value)
 
         # send rally item count to the vehicle
         vehicle.mav.param_set_send(target_system=vehicle.target_system,
                                    target_component=vehicle.target_component,
                                    param_id=bytes(Parameter.RALLY_TOTAL.encode("utf8")),
                                    param_value=len(send_rally_data),
-                                   param_type=dialect.MAV_PARAM_TYPE_REAL32)
+                                   param_type=MessageID.MAV_PARAM_TYPE_REAL32.value)
 
         # for each rally point item
         for rally_item in send_rally_data:
@@ -958,8 +976,7 @@ def post_fence():
     request = flask.request.json
 
     # adjust message white and black lists
-    messages = {dialect.MAVLink_fence_point_message.msgname,
-                dialect.MAVLink_param_value_message.msgname}
+    messages = {Message.FENCE_POINT.value, Message.PARAM_VALUE.value}
     for message in messages:
         message_white_list.add(message)
         message_black_list.discard(message)
@@ -1052,22 +1069,22 @@ def post_fence():
         vehicle.mav.param_set_send(target_system=vehicle.target_system,
                                    target_component=vehicle.target_component,
                                    param_id=bytes(Parameter.FENCE_ACTION.value.encode("utf8")),
-                                   param_value=dialect.FENCE_ACTION_NONE,
-                                   param_type=dialect.MAV_PARAM_TYPE_REAL32)
+                                   param_value=MessageID.FENCE_ACTION_NONE.value,
+                                   param_type=MessageID.MAV_PARAM_TYPE_REAL32.value)
 
         # send clear fence item count to the vehicle
         vehicle.mav.param_set_send(target_system=vehicle.target_system,
                                    target_component=vehicle.target_component,
                                    param_id=bytes(Parameter.FENCE_TOTAL.value.encode("utf8")),
                                    param_value=0,
-                                   param_type=dialect.MAV_PARAM_TYPE_REAL32)
+                                   param_type=MessageID.MAV_PARAM_TYPE_REAL32.value)
 
         # send fence item count to the vehicle
         vehicle.mav.param_set_send(target_system=vehicle.target_system,
                                    target_component=vehicle.target_component,
                                    param_id=bytes(Parameter.FENCE_TOTAL.value.encode("utf8")),
                                    param_value=len(send_fence_data),
-                                   param_type=dialect.MAV_PARAM_TYPE_REAL32)
+                                   param_type=MessageID.MAV_PARAM_TYPE_REAL32.value)
 
         # for each fence point item
         for fence_item in send_fence_data:
@@ -1084,7 +1101,7 @@ def post_fence():
                                    target_component=vehicle.target_component,
                                    param_id=bytes(Parameter.FENCE_ACTION.value.encode("utf8")),
                                    param_value=fence_action,
-                                   param_type=dialect.MAV_PARAM_TYPE_REAL32)
+                                   param_type=MessageID.MAV_PARAM_TYPE_REAL32.value)
 
         # message sent to vehicle
         response["sent"] = True
@@ -1220,6 +1237,141 @@ def post_message():
     return flask.jsonify(response)
 
 
+# post dictionary to api
+@application.route(rule="/set/<argument>", methods=["POST"])
+def set_argument(argument):
+    # get global variables
+    global vehicle, vehicle_connected
+    global message_white_list, message_black_list, message_data
+    global parameter_white_list, parameter_black_list, parameter_data
+
+    # get the request
+    request = flask.request.json
+
+    # create response
+    response = {"command": f"set_{argument}".upper(), "valid": False, "sent": False}
+
+    # check argument is white message list
+    if argument == "white_message":
+
+        # try to validate the request
+        if isinstance(request, list):
+            request = set(request)
+
+            # validation is successful
+            response["valid"] = True
+
+        # message should not be in helper message class
+        if response["valid"]:
+            default_messages = [message.value for message in Message]
+            for message in request:
+                if message in default_messages:
+                    response["valid"] = False
+                    break
+
+        # check validity
+        if response["valid"]:
+
+            # set white and black message lists
+            message_white_list = set().union(set([message.value for message in Message]), request)
+            message_black_list = set()
+
+            # message sent to api
+            response["sent"] = True
+
+    # check argument is black message list
+    elif argument == "black_message":
+
+        # try to validate the request
+        if isinstance(request, list):
+            request = set(request)
+
+            # validation is successful
+            response["valid"] = True
+
+        # message should not be in helper message class
+        if response["valid"]:
+            default_messages = [message.value for message in Message]
+            for message in request:
+                if message in default_messages:
+                    response["valid"] = False
+                    break
+
+        # check validity
+        if response["valid"]:
+
+            # set white and black message lists
+            message_white_list = set([message.value for message in Message])
+            message_black_list = request.difference(message_white_list)
+
+            # message sent to api
+            response["sent"] = True
+
+    # check argument is white parameter list
+    elif argument == "white_parameter":
+
+        # try to validate the request
+        if isinstance(request, list):
+            request = set(request)
+
+            # validation is successful
+            response["valid"] = True
+
+        # parameter should not be in helper parameter class
+        if response["valid"]:
+            default_parameters = [parameter.value for parameter in Parameter]
+            for parameter in request:
+                if parameter in default_parameters:
+                    response["valid"] = False
+                    break
+
+        # check validity
+        if response["valid"]:
+
+            # set white and black parameter lists
+            parameter_white_list = set().union(set([parameter.value for parameter in Parameter]), request)
+            parameter_black_list = set()
+
+            # check if vehicle is alive
+            if vehicle_connected:
+                # request parameter list from vehicle
+                vehicle.mav.param_request_list_send(vehicle.target_system, vehicle.target_component)
+
+            # message sent to api
+            response["sent"] = True
+
+    # check argument is black parameter list
+    elif argument == "black_parameter":
+
+        # try to validate the request
+        if isinstance(request, list):
+            request = set(request)
+
+            # validation is successful
+            response["valid"] = True
+
+        # parameter should not be in helper parameter class
+        if response["valid"]:
+            default_parameters = [parameter.value for parameter in Parameter]
+            for parameter in request:
+                if parameter in default_parameters:
+                    response["valid"] = False
+                    break
+
+        # check validity
+        if response["valid"]:
+
+            # set white and black parameter lists
+            parameter_white_list = set([parameter.value for parameter in Parameter])
+            parameter_black_list = request.difference_update(parameter_white_list)
+
+            # message sent to api
+            response["sent"] = True
+
+    # expose the response
+    return flask.jsonify(response)
+
+
 # deal with the malicious requests
 @application.errorhandler(code_or_exception=404)
 def page_not_found(error):
@@ -1242,6 +1394,7 @@ def receive_telemetry(master, timeout, drop, rate,
     global rally_data, rally_count_total, rally_count
     global send_plan_data, send_fence_data, send_rally_data
     global statistics_data, hold_statistics
+    global default_parameter_list_length, default_message_list_length
 
     # zero time out means do not time out
     if timeout == 0:
@@ -1252,14 +1405,7 @@ def receive_telemetry(master, timeout, drop, rate,
         drop = None
 
     # create message white list set used in non-periodic parameter and flight plan related messages
-    message_white_list = {dialect.MAVLink_param_value_message.msgname,
-                          dialect.MAVLink_mission_count_message.msgname,
-                          dialect.MAVLink_mission_item_int_message.msgname,
-                          dialect.MAVLink_mission_ack_message.msgname,
-                          dialect.MAVLink_mission_request_message.msgname,
-                          dialect.MAVLink_fence_point_message.msgname,
-                          dialect.MAVLink_rally_point_message.msgname,
-                          dialect.MAVLink_home_position_message.msgname}
+    message_white_list = set([message.value for message in Message])
 
     # parse message white list based on user requirements
     if white_message != "":
@@ -1269,14 +1415,7 @@ def receive_telemetry(master, timeout, drop, rate,
     message_black_list = set() if black_message == "" else {x for x in black_message.replace(" ", "").split(",")}
 
     # create parameter white list
-    parameter_white_list = {Parameter.FENCE_ACTION.value,
-                            Parameter.FENCE_TOTAL.value,
-                            Parameter.RALLY_TOTAL.value,
-                            Parameter.SYSID_THISMAV.value,
-                            Parameter.STAT_BOOTCNT.value,
-                            Parameter.STAT_FLTTIME.value,
-                            Parameter.STAT_RESET.value,
-                            Parameter.STAT_RUNTIME.value}
+    parameter_white_list = set([parameter.value for parameter in Parameter])
 
     # parse parameter white list based on user requirements
     if white_parameter != "":
@@ -1298,13 +1437,13 @@ def receive_telemetry(master, timeout, drop, rate,
         if home:
 
             # adjust message white and black lists
-            messages = {dialect.MAVLink_home_position_message.msgname}
+            messages = {Message.HOME_POSITION.value}
             for message in messages:
                 message_white_list.add(message)
                 message_black_list.discard(message)
 
             # add home position message interval request at 0.2 Hz
-            request[f"{dialect.MAVLink_home_position_message.id}"] = 0.2
+            request[f"{MessageID.HOME_POSITION.value}"] = 0.2
 
         # need to get heartbeat
         if param or plan or rate > 0 or reset or request != {}:
@@ -1321,16 +1460,16 @@ def receive_telemetry(master, timeout, drop, rate,
                                        target_component=vehicle.target_component,
                                        param_id=bytes(Parameter.STAT_RESET.value.encode("utf8")),
                                        param_value=0,
-                                       param_type=dialect.MAV_PARAM_TYPE_REAL32)
+                                       param_type=MessageID.MAV_PARAM_TYPE_REAL32.value)
 
         # user requested all the available streams from vehicle
         if rate > 0:
             # request all available streams from vehicle
             vehicle.mav.request_data_stream_send(target_system=vehicle.target_system,
                                                  target_component=vehicle.target_component,
-                                                 req_stream_id=dialect.MAV_DATA_STREAM_ALL,
+                                                 req_stream_id=MessageID.MAV_DATA_STREAM_ALL.value,
                                                  req_message_rate=rate,
-                                                 start_stop=1)
+                                                 start_stop=MessageID.START_STOP.value)
 
         # user requested custom streams from vehicle
         if request != {}:
@@ -1344,7 +1483,7 @@ def receive_telemetry(master, timeout, drop, rate,
                 # request the custom stream from vehicle
                 vehicle.mav.command_long_send(target_system=vehicle.target_system,
                                               target_component=vehicle.target_component,
-                                              command=dialect.MAV_CMD_SET_MESSAGE_INTERVAL,
+                                              command=MessageID.MAV_CMD_SET_MESSAGE_INTERVAL.value,
                                               confirmation=0,
                                               param1=message_id,
                                               param2=message_interval,
@@ -1449,7 +1588,7 @@ def receive_telemetry(master, timeout, drop, rate,
                 continue
 
             # do not proceed if message is not in the white list
-            if len(white_message) > 1 and message_name not in message_white_list:
+            if len(message_white_list) > default_message_list_length and message_name not in message_white_list:
                 continue
 
             # discard bad data
@@ -1510,13 +1649,13 @@ def receive_telemetry(master, timeout, drop, rate,
                     message_data[message_name]["statistics"]["average_frequency"] = average_frequency
 
             # message contains the home location
-            if message_name == dialect.MAVLink_home_position_message.msgname:
+            if message_name == Message.HOME_POSITION.value:
                 # stop requesting home position from vehicle
                 vehicle.mav.command_long_send(target_system=vehicle.target_system,
                                               target_component=vehicle.target_component,
-                                              command=dialect.MAV_CMD_SET_MESSAGE_INTERVAL,
+                                              command=MessageID.MAV_CMD_SET_MESSAGE_INTERVAL.value,
                                               confirmation=0,
-                                              param1=dialect.MAVLink_home_position_message.id,
+                                              param1=MessageID.HOME_POSITION.value,
                                               param2=-1,
                                               param3=0,
                                               param4=0,
@@ -1528,10 +1667,10 @@ def receive_telemetry(master, timeout, drop, rate,
                 continue
 
             # message that request a plan item
-            if message_name == dialect.MAVLink_mission_request_message.msgname:
+            if message_name == Message.MISSION_REQUEST.value:
 
                 # check if this message requests a plan item
-                if message_dict["mission_type"] == dialect.MAV_MISSION_TYPE_MISSION:
+                if message_dict["mission_type"] == MessageID.MAV_MISSION_TYPE_MISSION.value:
 
                     # find the plan item
                     for item in send_plan_data:
@@ -1562,13 +1701,13 @@ def receive_telemetry(master, timeout, drop, rate,
                                                       x=item["x"],
                                                       y=item["y"],
                                                       z=item["z"],
-                                                      mission_type=dialect.MAV_MISSION_TYPE_MISSION)
+                                                      mission_type=MessageID.MAV_MISSION_TYPE_MISSION.value)
 
                 # do not proceed further
                 continue
 
             # message contains a parameter value
-            if message_name == dialect.MAVLink_param_value_message.msgname:
+            if message_name == Message.PARAM_VALUE.value:
 
                 # update total parameter count
                 parameter_count_total = message_dict["param_count"]
@@ -1581,7 +1720,8 @@ def receive_telemetry(master, timeout, drop, rate,
                     continue
 
                 # do not proceed if parameter is not in the white list
-                if len(white_parameter) > 1 and message_dict["param_id"] not in parameter_white_list:
+                if len(parameter_white_list) > default_parameter_list_length and \
+                        message_dict["param_id"] not in parameter_white_list:
                     continue
 
                 # get the parameter value
@@ -1622,11 +1762,11 @@ def receive_telemetry(master, timeout, drop, rate,
                         break
 
             # message means flight plan on the vehicle has changed
-            if message_name == dialect.MAVLink_mission_ack_message.msgname:
+            if message_name == Message.MISSION_ACK.value:
 
                 # mission plan is accepted and this acknowledgement is for flight plan
-                if message_dict["mission_type"] == dialect.MAV_MISSION_TYPE_MISSION and \
-                        message_dict["type"] == dialect.MAV_MISSION_ACCEPTED:
+                if message_dict["mission_type"] == MessageID.MAV_MISSION_TYPE_MISSION.value and \
+                        message_dict["type"] == MessageID.MAV_MISSION_ACCEPTED.value:
                     # clear flight plan related variables
                     plan_data = []
                     plan_count = set()
@@ -1639,7 +1779,7 @@ def receive_telemetry(master, timeout, drop, rate,
                 continue
 
             # message contains total flight plan items on the vehicle
-            if message_name == dialect.MAVLink_mission_count_message.msgname:
+            if message_name == Message.MISSION_COUNT.value:
 
                 # check this count is for flight plan
                 if message_dict["mission_type"] == 0:
@@ -1655,7 +1795,7 @@ def receive_telemetry(master, timeout, drop, rate,
                 continue
 
             # message contains a flight plan item
-            if message_name == dialect.MAVLink_mission_item_int_message.msgname:
+            if message_name == Message.MISSION_ITEM_INT.value:
 
                 # check this flight plan command was not populated before
                 if message_dict["seq"] not in plan_count:
@@ -1682,7 +1822,7 @@ def receive_telemetry(master, timeout, drop, rate,
                         break
 
             # message contains a fence item
-            if message_name == dialect.MAVLink_fence_point_message.msgname:
+            if message_name == Message.FENCE_POINT.value:
 
                 # check this fence item was not populated before
                 if message_dict["idx"] not in fence_count:
@@ -1709,7 +1849,7 @@ def receive_telemetry(master, timeout, drop, rate,
                         break
 
             # message contains a rally item
-            if message_name == dialect.MAVLink_rally_point_message.msgname:
+            if message_name == Message.RALLY_POINT.value:
 
                 # check this rally item was not populated before
                 if message_dict["idx"] not in rally_count:
@@ -1741,6 +1881,18 @@ def receive_telemetry(master, timeout, drop, rate,
                     if time_monotonic - message_data[message_name]["statistics"]["last_monotonic"] > drop:
                         message_data.pop(message_name)
 
+            # update message data
+            for message in list(message_data.keys()):
+                if len(message_white_list) > default_message_list_length:
+                    if message not in message_white_list or message in message_black_list:
+                        del message_data[message]
+
+            # update parameter data
+            for parameter in list(parameter_data.keys()):
+                if len(parameter_white_list) > default_parameter_list_length:
+                    if parameter not in parameter_white_list or parameter in parameter_black_list:
+                        del parameter_data[parameter]
+
 
 @click.command()
 @click.option("--host", default="127.0.0.1", type=click.STRING, required=False,
@@ -1749,9 +1901,9 @@ def receive_telemetry(master, timeout, drop, rate,
               help="Pymavrest server port number.")
 @click.option("--master", default="udpin:127.0.0.1:14550", type=click.STRING, required=False,
               help="Standard MAVLink connection string.")
-@click.option("--timeout", default=5.0, type=click.FloatRange(min=0, clamp=True), required=False,
+@click.option("--timeout", default=5, type=click.FloatRange(min=0, clamp=True), required=False,
               help="Try to reconnect after this seconds when no message is received, zero means do not reconnect")
-@click.option("--drop", default=5.0, type=click.FloatRange(min=0, clamp=True), required=False,
+@click.option("--drop", default=0, type=click.FloatRange(min=0, clamp=True), required=False,
               help="Drop non-periodic messages after this seconds, zero means do not drop.")
 @click.option("--rate", default=4, type=click.IntRange(min=0, clamp=True), required=False,
               help="Message stream that will be requested from vehicle, zero means do not request.")
@@ -1771,7 +1923,7 @@ def receive_telemetry(master, timeout, drop, rate,
               help="Fetch fence.")
 @click.option("--rally", default=True, type=click.BOOL, required=False,
               help="Fetch rally.")
-@click.option("--reset", default=False, type=click.BOOL, required=False,
+@click.option("--reset", default=True, type=click.BOOL, required=False,
               help="Reset statistics on start.")
 @click.option("--custom", default="", type=click.STRING, required=False,
               help="User-defined custom key-value pairs.")
