@@ -20,6 +20,14 @@ import flask_cors
 # always use MAVLink 2.0
 os.environ["MAVLINK20"] = "1"
 
+# application version
+version_data = {"name": "pymavrest",
+                "major": 0,
+                "minor": 0,
+                "patch": 0,
+                "version": "0.0.0",
+                "commit": "unknown"}
+
 
 # Message name enumeration
 class Message(enum.Enum):
@@ -248,7 +256,7 @@ schema_message = {
 @application.route(rule="/get/all", methods=["GET"])
 def get_all():
     # get all data
-    global message_data, parameter_data, plan_data, fence_data, rally_data, custom_data, statistics_data
+    global message_data, parameter_data, plan_data, fence_data, rally_data, custom_data, statistics_data, version_data
 
     # create all data
     all_data = {"message": message_data,
@@ -257,10 +265,21 @@ def get_all():
                 "fence": fence_data,
                 "rally": rally_data,
                 "custom": custom_data,
-                "statistics": statistics_data}
+                "statistics": statistics_data,
+                "version": version_data}
 
     # expose the response
     return flask.jsonify(all_data)
+
+
+# get version data
+@application.route(rule="/get/version", methods=["GET"])
+def get_version():
+    # get version data
+    global version_data
+
+    # expose the response
+    return flask.jsonify(version_data)
 
 
 # get time data

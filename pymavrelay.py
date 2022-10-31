@@ -36,6 +36,13 @@ def get_all():
     return flask.jsonify(all_data)
 
 
+# get version data
+@application.route(rule="/get/version", methods=["GET"])
+def get_version():
+    global all_data
+    return flask.jsonify(all_data.get("version", {}))
+
+
 # get time data
 @application.route(rule="/get/statistics", methods=["GET"])
 def get_statistics():
