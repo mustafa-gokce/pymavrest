@@ -796,7 +796,8 @@ def post_plan():
     request = flask.request.json
 
     # adjust message white and black lists
-    messages = {Message.MISSION_COUNT.value, Message.MISSION_ITEM_INT.value, Message.MISSION_ACK.value, Message.MISSION_REQUEST.value}
+    messages = {Message.MISSION_COUNT.value, Message.MISSION_ITEM_INT.value, Message.MISSION_ACK.value,
+                Message.MISSION_REQUEST.value}
     for message in messages:
         message_white_list.add(message)
         message_black_list.discard(message)
@@ -1165,6 +1166,17 @@ def post_key_value_pair():
         # create or update key value pair
         custom_data[request["key"]] = request["value"]
 
+        # get directory of this file
+        directory = os.path.dirname(os.path.realpath(__file__))
+
+        # build path to custom data file
+        path = os.path.join(directory, "custom.json")
+
+        # update custom file
+        with open(file=path, mode="w") as file:
+            # write custom data to file
+            json.dump(obj=custom_data, fp=file, indent=4)
+
         # message sent to api
         response["sent"] = True
 
@@ -1198,6 +1210,17 @@ def post_custom_all():
     if response["valid"]:
         # update custom data
         custom_data = {**custom_data, **request}
+
+        # get directory of this file
+        directory = os.path.dirname(os.path.realpath(__file__))
+
+        # build path to custom data file
+        path = os.path.join(directory, "custom.json")
+
+        # update custom file
+        with open(file=path, mode="w") as file:
+            # write custom data to file
+            json.dump(obj=custom_data, fp=file, indent=4)
 
         # message sent to api
         response["sent"] = True
@@ -1290,7 +1313,6 @@ def set_argument(argument):
 
         # check validity
         if response["valid"]:
-
             # set white and black message lists
             message_white_list = set().union(set([message.value for message in Message]), request)
             message_black_list = set()
@@ -1318,7 +1340,6 @@ def set_argument(argument):
 
         # check validity
         if response["valid"]:
-
             # set white and black message lists
             message_white_list = set([message.value for message in Message])
             message_black_list = request.difference(message_white_list)
@@ -1379,7 +1400,6 @@ def set_argument(argument):
 
         # check validity
         if response["valid"]:
-
             # set white and black parameter lists
             parameter_white_list = set([parameter.value for parameter in Parameter])
             parameter_black_list = request.difference_update(parameter_white_list)
@@ -1963,17 +1983,43 @@ def main(host, port, master, timeout, drop, rate,
 
     # check user defined some key value pairs
     if custom != "":
+
         # parse custom argument and set custom data
         custom_data = json.loads(s=custom)
+
+    # user did not define any key value pairs
     else:
-        # create empty custom data
-        custom_data = {}
+
+        # try to load custom data from file
+        try:
+
+            # get directory of this file
+            directory = os.path.dirname(os.path.realpath(__file__))
+
+            # build path to custom data file
+            path = os.path.join(directory, "custom.json")
+
+            # load custom data from file
+            with open(path, "r") as file:
+
+                # set custom data
+                custom_data = json.load(file)
+
+        # file does not exist
+        except FileNotFoundError:
+
+            # set custom data to empty dictionary
+            custom_data = {}
 
     # check user requested non-default message streams
     if request != "":
+
         # parse request to dictionary
         request = json.loads(s=request)
+
+    # user did not request any non-default message streams
     else:
+
         # create empty request dictionary
         request = {}
 
