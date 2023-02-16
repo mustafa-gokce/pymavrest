@@ -13,6 +13,10 @@ import requests
 import threading
 import time
 
+# set the default socket options
+requests.packages.urllib3.connection.HTTPConnection.default_socket_options = [(6, 3, 1)]
+requests.packages.urllib3.connection.HTTPConnection.socket_options = [(6, 3, 1)]
+
 # create a flask application
 application = flask.Flask(import_name="pymavrelay")
 
