@@ -1996,7 +1996,7 @@ def receive_telemetry(master, timeout, drop, rate,
               help="Reset statistics on start.")
 @click.option("--custom", default="", type=click.STRING, required=False,
               help="User-defined custom key-value pairs.")
-@click.option("--cache", default="", type=click.STRING, required=True,
+@click.option("--cache", default=True, type=click.BOOL, required=False,
               help="Cache custom data.")
 @click.option("--request", default="", type=click.STRING, required=False,
               help="Request non-default message streams with frequency.")
