@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import gevent
 import gevent.monkey
 
 # patch the modules for asynchronous work
@@ -10,12 +11,6 @@ import gevent.pywsgi
 import flask
 import flask_cors
 import requests
-import threading
-import time
-
-# set the default socket options
-requests.packages.urllib3.connection.HTTPConnection.default_socket_options = [(6, 3, 1)]
-requests.packages.urllib3.connection.HTTPConnection.socket_options = [(6, 3, 1)]
 
 # create a flask application
 application = flask.Flask(import_name="pymavrelay")
@@ -187,7 +182,7 @@ def receive():
             all_data = requests.get(url=f"http://{input_host}:{input_port}/get/all", timeout=timeout).json()
         except Exception as e:
             pass
-        time.sleep(1.0 / frequency)
+        gevent.sleep(1.0 / frequency)
 
 
 @click.command()
@@ -198,7 +193,6 @@ def receive():
 @click.option("--freq", default=1, type=click.IntRange(min=0, clamp=True), required=False, help="Fetch frequency.")
 @click.option("--wait", default=4, type=click.IntRange(min=0, clamp=True), required=False, help="Wait for API.")
 def main(host_in, port_in, host_out, port_out, freq, wait):
-
     # configure the flask application
     global input_host, input_port, output_host, output_port, frequency, timeout
     input_host = host_in
@@ -208,14 +202,20 @@ def main(host_in, port_in, host_out, port_out, freq, wait):
     frequency = freq
     timeout = wait
 
-    # start telemetry receiver thread
-    threading.Thread(target=receive).start()
-
     # create server
     server = gevent.pywsgi.WSGIServer(listener=(host_out, port_out), application=application, log=application.logger)
 
-    # run server
-    server.serve_forever()
+    # create spawns
+    spawn_server = gevent.spawn(server.start)
+    spawn_receive = gevent.spawn(receive)
+
+    # wait for keyboard interrupt
+    try:
+        gevent.joinall([spawn_server, spawn_receive])
+    except KeyboardInterrupt:
+        print("Keyboard interrupt received, exiting...")
+    except Exception as e:
+        print(e)
 
 
 # main entry point
