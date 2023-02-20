@@ -1207,7 +1207,7 @@ def post_key_value_pair():
 @application.route(rule="/post/custom/all", methods=["POST"])
 def post_custom_all():
     # get global variables
-    global custom_data
+    global custom_data, custom_cache
 
     # get the request
     request = flask.request.json
@@ -2129,10 +2129,20 @@ def main(host, port, master, timeout, drop, rate,
 
     # wait for keyboard interrupt
     try:
+
+        # join spawned threads
         gevent.joinall([spawn_server, spawn_receiver])
+
+    # keyboard interrupt received
     except KeyboardInterrupt:
+
+        # print message
         print("Keyboard interrupt received, exiting...")
+
+    # other exception received
     except Exception as e:
+
+        # print exception
         print(e)
 
 
