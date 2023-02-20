@@ -1491,8 +1491,43 @@ def receive_telemetry(master, timeout, drop, rate,
         # reset connection flag
         vehicle_connected = False
 
-        # connect to vehicle
-        vehicle = utility.mavlink_connection(device=master, force_connected=True)
+        # try to connect to vehicle
+        try:
+
+            # connect to vehicle
+            vehicle = utility.mavlink_connection(device=master, force_connected=True)
+
+            # wait until vehicle connection is assured
+            heartbeat = vehicle.wait_heartbeat(blocking=True, timeout=timeout)
+
+            # check if vehicle is alive
+            if heartbeat is None:
+                # do not proceed further
+                continue
+
+            # set connection flag
+            vehicle_connected = True
+
+        # handle connection errors
+        except Exception as e:
+
+            # try to close the connection
+            try:
+
+                # close the connection
+                vehicle.close()
+
+            # handle close errors
+            except Exception as e:
+
+                # do nothing
+                pass
+
+            # sleep for timeout seconds
+            gevent.sleep(timeout)
+
+            # do not proceed further
+            continue
 
         # user requested to populate home
         if home:
@@ -1505,14 +1540,6 @@ def receive_telemetry(master, timeout, drop, rate,
 
             # add home position message interval request at 0.2 Hz
             request[f"{MessageEnum.HOME_POSITION.value}"] = 0.2
-
-        # need to get heartbeat
-        if param or plan or rate > 0 or reset or request != {}:
-            # wait until vehicle connection is assured
-            vehicle.wait_heartbeat()
-
-            # set connection flag
-            vehicle_connected = True
 
         # user requested to reset on-board statistics of vehicle
         if reset:
@@ -1576,11 +1603,21 @@ def receive_telemetry(master, timeout, drop, rate,
 
             # check timeout should occur or not
             if time_monotonic - last_message_monotonic > timeout:
+
                 # reset connection flag
                 vehicle_connected = False
 
-                # close the vehicle
-                vehicle.close()
+                # try to close the connection
+                try:
+
+                    # close the connection
+                    vehicle.close()
+
+                # handle close errors
+                except Exception as e:
+
+                    # do nothing
+                    pass
 
                 # break the inner loop
                 break
