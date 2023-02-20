@@ -1622,8 +1622,17 @@ def receive_telemetry(master, timeout, drop, rate,
                 # break the inner loop
                 break
 
-            # wait a message from vehicle until specified timeout
-            message_raw = vehicle.recv_msg()
+            # try to receive message from vehicle
+            try:
+
+                # receive message from vehicle
+                message_raw = vehicle.recv_msg()
+
+            # handle receive errors
+            except Exception as e:
+
+                # message is not received
+                message_raw = None
 
             # do not proceed to message parsing if no message received from vehicle within specified time
             if message_raw is None:
