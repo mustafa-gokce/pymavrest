@@ -1495,7 +1495,11 @@ def receive_telemetry(master, timeout, drop, rate,
         try:
 
             # connect to vehicle
-            vehicle = utility.mavlink_connection(device=master, force_connected=True)
+            vehicle = utility.mavlink_connection(device=master,
+                                                 autoreconnect=True,
+                                                 force_connected=True,
+                                                 udp_timeout=timeout,
+                                                 timeout=timeout)
 
             # wait until vehicle connection is assured
             heartbeat = vehicle.wait_heartbeat(blocking=True, timeout=timeout)
