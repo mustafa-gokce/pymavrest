@@ -2094,7 +2094,7 @@ def main(host, port, master, timeout, drop, rate,
                     custom_data = json.load(file)
 
             # file does not exist
-            except FileNotFoundError:
+            except Exception as e:
 
                 # set custom data to empty dictionary
                 custom_data = {}
