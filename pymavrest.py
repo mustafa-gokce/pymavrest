@@ -1185,14 +1185,8 @@ def post_key_value_pair():
 
         # update custom cache
         if custom_cache:
-            # get directory of this file
-            directory = os.path.dirname(os.path.realpath(__file__))
-
-            # build path to custom data file
-            path = os.path.join(directory, "custom.json")
-
             # update custom file
-            with open(file=path, mode="w") as file:
+            with open(file="custom.json", mode="w") as file:
                 # write custom data to file
                 json.dump(obj=custom_data, fp=file, indent=4)
 
@@ -1232,14 +1226,8 @@ def post_custom_all():
 
         # update custom cache
         if custom_cache:
-            # get directory of this file
-            directory = os.path.dirname(os.path.realpath(__file__))
-
-            # build path to custom data file
-            path = os.path.join(directory, "custom.json")
-
             # update custom file
-            with open(file=path, mode="w") as file:
+            with open(file="custom.json", mode="w") as file:
                 # write custom data to file
                 json.dump(obj=custom_data, fp=file, indent=4)
 
@@ -2069,47 +2057,50 @@ def main(host, port, master, timeout, drop, rate,
     # user requested to cache custom data
     if custom_cache:
 
-        # check user defined some key value pairs
-        if custom != "":
+        # try to load custom data from file
+        try:
+
+            # load custom data from file
+            with open("custom.json", "r") as file:
+
+                # set custom data
+                custom_data = {**custom_data, **json.load(fp=file)}
+
+        # file does not exist
+        except Exception as e:
+
+            # do nothing
+            pass
+
+    # check user defined some key value pairs
+    if custom != "":
+
+        # try to parse custom argument and set custom data
+        try:
 
             # parse custom argument and set custom data
-            custom_data = json.loads(s=custom)
+            custom_data = {**custom_data, **json.loads(s=custom)}
 
-        # user did not define any key value pairs
-        else:
+        # user did not define valid key value pairs
+        except Exception as e:
 
-            # try to load custom data from file
-            try:
-
-                # get directory of this file
-                directory = os.path.dirname(os.path.realpath(__file__))
-
-                # build path to custom data file
-                path = os.path.join(directory, "custom.json")
-
-                # load custom data from file
-                with open(path, "r") as file:
-
-                    # set custom data
-                    custom_data = json.load(file)
-
-            # file does not exist
-            except Exception as e:
-
-                # set custom data to empty dictionary
-                custom_data = {}
-
-    # user did not request to cache custom data
-    else:
-
-        # set custom data to empty dictionary
-        custom_data = {}
+            # do nothing
+            pass
 
     # check user requested non-default message streams
     if request != "":
 
-        # parse request to dictionary
-        request = json.loads(s=request)
+        # try to parse request to dictionary
+        try:
+
+            # parse request to dictionary
+            request = json.loads(s=request)
+
+        # user did not define valid key value pairs
+        except Exception as e:
+
+            # set request to empty dictionary
+            request = {}
 
     # user did not request any non-default message streams
     else:
