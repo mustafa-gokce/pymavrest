@@ -25,9 +25,9 @@ os.environ["MAVLINK20"] = "1"
 version_data = {"name": "pymavrest",
                 "major": 2,
                 "minor": 7,
-                "patch": 1,
-                "version": "2.7.1",
-                "commit": "b7592438"}
+                "patch": 2,
+                "version": "2.7.2",
+                "commit": "ef25bb27"}
 
 
 # Message name enumeration
