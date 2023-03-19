@@ -1188,7 +1188,7 @@ def post_key_value_pair():
             # update custom file
             with open(file="custom.json", mode="w") as file:
                 # write custom data to file
-                json.dump(obj=custom_data, fp=file, indent=4)
+                json.dump(obj={**json.load(fp=file), **custom_data}, fp=file, indent=4)
 
         # message sent to api
         response["sent"] = True
@@ -1229,7 +1229,7 @@ def post_custom_all():
             # update custom file
             with open(file="custom.json", mode="w") as file:
                 # write custom data to file
-                json.dump(obj=custom_data, fp=file, indent=4)
+                json.dump(obj={**json.load(fp=file), **custom_data}, fp=file, indent=4)
 
         # message sent to api
         response["sent"] = True
