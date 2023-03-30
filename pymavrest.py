@@ -1183,27 +1183,6 @@ def post_key_value_pair():
         # create or update key value pair
         custom_data[request["key"]] = request["value"]
 
-        # update custom cache
-        if custom_cache:
-
-            # read custom file first
-            custom_file_content = {}
-            custom_file_fetched = False
-            try:
-                with open(file="custom.json", mode="r") as file:
-                    custom_file_content = json.load(fp=file)
-                    custom_file_fetched = True
-            except Exception as e:
-                pass
-
-            # update custom file
-            if custom_file_fetched:
-                try:
-                    with open(file="custom.json", mode="w") as file:
-                        json.dump(obj={**custom_file_content, **custom_data}, fp=file, indent=4)
-                except Exception as e:
-                    pass
-
         # message sent to api
         response["sent"] = True
 
@@ -1237,27 +1216,6 @@ def post_custom_all():
     if response["valid"]:
         # update custom data
         custom_data = {**custom_data, **request}
-
-        # update custom cache
-        if custom_cache:
-
-            # read custom file first
-            custom_file_content = {}
-            custom_file_fetched = False
-            try:
-                with open(file="custom.json", mode="r") as file:
-                    custom_file_content = json.load(fp=file)
-                    custom_file_fetched = True
-            except Exception as e:
-                pass
-
-            # update custom file
-            if custom_file_fetched:
-                try:
-                    with open(file="custom.json", mode="w") as file:
-                        json.dump(obj={**custom_file_content, **custom_data}, fp=file, indent=4)
-                except Exception as e:
-                    pass
 
         # message sent to api
         response["sent"] = True
@@ -2092,7 +2050,7 @@ def main(host, port, master, timeout, drop, rate,
             with open("custom.json", "r") as file:
 
                 # set custom data
-                custom_data = {**custom_data, **json.load(fp=file)}
+                custom_data = json.load(fp=file)
 
         # file does not exist
         except Exception as e:
@@ -2145,16 +2103,36 @@ def main(host, port, master, timeout, drop, rate,
             get_statistics()
 
     # spawn server and telemetry receiver
-    spawn_server = gevent.spawn(server.start)
-    spawn_receiver = gevent.spawn(receive_telemetry, master, timeout, drop, rate,
-                                  white_message, black_message, white_parameter, black_parameter,
-                                  param, plan, fence, rally, reset, request, home)
+    gevent.spawn(server.start)
+    gevent.spawn(receive_telemetry, master, timeout, drop, rate,
+                 white_message, black_message, white_parameter, black_parameter,
+                 param, plan, fence, rally, reset, request, home)
 
     # wait for keyboard interrupt
     try:
 
-        # join spawned threads
-        gevent.joinall([spawn_server, spawn_receiver])
+        # run indefinitely
+        while True:
+
+            # wait for keyboard interrupt
+            gevent.sleep(10)
+
+            if custom_cache:
+
+                # try to save custom data to file
+                try:
+
+                    # save custom data to file
+                    with open("custom.json", "w") as file:
+
+                        # save custom data to file
+                        json.dump(obj=custom_data, fp=file)
+
+                # file does not exist
+                except Exception as e:
+
+                    # do nothing
+                    pass
 
     # keyboard interrupt received
     except KeyboardInterrupt:
