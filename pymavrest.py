@@ -1185,10 +1185,24 @@ def post_key_value_pair():
 
         # update custom cache
         if custom_cache:
+
+            # read custom file first
+            custom_file_content = {}
+            custom_file_fetched = False
+            try:
+                with open(file="custom.json", mode="r") as file:
+                    custom_file_content = json.load(fp=file)
+                    custom_file_fetched = True
+            except Exception as e:
+                pass
+
             # update custom file
-            with open(file="custom.json", mode="w") as file:
-                # write custom data to file
-                json.dump(obj={**json.load(fp=file), **custom_data}, fp=file, indent=4)
+            if custom_file_fetched:
+                try:
+                    with open(file="custom.json", mode="w") as file:
+                        json.dump(obj={**custom_file_content, **custom_data}, fp=file, indent=4)
+                except Exception as e:
+                    pass
 
         # message sent to api
         response["sent"] = True
@@ -1226,10 +1240,24 @@ def post_custom_all():
 
         # update custom cache
         if custom_cache:
+
+            # read custom file first
+            custom_file_content = {}
+            custom_file_fetched = False
+            try:
+                with open(file="custom.json", mode="r") as file:
+                    custom_file_content = json.load(fp=file)
+                    custom_file_fetched = True
+            except Exception as e:
+                pass
+
             # update custom file
-            with open(file="custom.json", mode="w") as file:
-                # write custom data to file
-                json.dump(obj={**json.load(fp=file), **custom_data}, fp=file, indent=4)
+            if custom_file_fetched:
+                try:
+                    with open(file="custom.json", mode="w") as file:
+                        json.dump(obj={**custom_file_content, **custom_data}, fp=file, indent=4)
+                except Exception as e:
+                    pass
 
         # message sent to api
         response["sent"] = True
