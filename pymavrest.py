@@ -2123,10 +2123,16 @@ def main(host, port, master, timeout, drop, rate,
                 try:
 
                     # save custom data to file
-                    with open("custom.json", "w") as file:
+                    with open(file="custom.json", mode="wb", buffering=0) as file:
 
                         # save custom data to file
-                        json.dump(obj=custom_data, fp=file)
+                        file.write(json.dumps(obj=custom_data).encode(encoding="utf-8"))
+
+                        # flush file to disk
+                        file.flush()
+
+                        # synchronize file with disk
+                        os.fsync(fd=file.fileno())
 
                 # file does not exist
                 except Exception as e:
